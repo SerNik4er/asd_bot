@@ -24,6 +24,8 @@ markdown
 - python-telegram-bot (v20+)
 - SQLite3
 - python-dotenv
+  
+> 💡 **Точные версии зависимостей** указаны в файле `requirements.txt`.
 
 ## 🚀 Установка и запуск
 
