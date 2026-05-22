@@ -1,10 +1,9 @@
-import asyncio
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ConversationHandler
 from config import BOT_TOKEN
 from database import init_db
 from scheduler_tasks import load_active_reminders
 
-# Импорты из on_handlers (переписанного под python-telegram-bot)
+# Импорты из on_handlers
 from on_handlers import (
     cmd_start,
     cmd_help,
@@ -32,7 +31,7 @@ from on_handlers import (
 from handlers.admin import users_list
 
 
-async def main():
+def main():
     # Создаём приложение
     app = Application.builder().token(BOT_TOKEN).build()
 
@@ -76,13 +75,10 @@ async def main():
     init_db()
     print("База данных готова")
 
-    # Загружаем напоминания (если нужны)
-    await load_active_reminders(app.bot)
-
-    # Запускаем бота
+    # Запускаем бота (без asyncio.run)
     print("Бот запущен! 🚀")
-    await app.run_polling()
+    app.run_polling()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
