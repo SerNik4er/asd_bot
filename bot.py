@@ -8,7 +8,7 @@ from scheduler_tasks import scheduler, load_active_reminders
 
 async def main():
     # Инициализация
-    bot = Bot(token=TOKEN)
+    bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
 
     # Подключаем роутер с обработчиками
