@@ -14,6 +14,14 @@ def init_db():
     with get_connection() as conn:
         c = conn.cursor()
 
+        # Таблица пользователей (НОВАЯ!)
+        c.execute('''CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                first_name TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+
         # Таблица событий
         c.execute('''CREATE TABLE IF NOT EXISTS events
                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,7 +32,7 @@ def init_db():
                 severity INTEGER,
                 note TEXT)''')
 
-        #Таблица напоминаний
+        # Таблица напоминаний
         c.execute('''CREATE TABLE IF NOT EXISTS reminders
                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
