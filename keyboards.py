@@ -8,12 +8,11 @@ def get_meltdown_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_main_keyboard():
-    """Главная клавиатура с кнопками-командами"""
     buttons = [
-        [KeyboardButton("/sleep"), KeyboardButton("/food")],
-        [KeyboardButton("/meltdown"), KeyboardButton("/mood")],
-        [KeyboardButton("/stats"), KeyboardButton("/tip")],
-        [KeyboardButton("/remind"), KeyboardButton("/report")]
+        [KeyboardButton("🌙 Сон"), KeyboardButton("🍎 Еда")],
+        [KeyboardButton("😭 Истерика"), KeyboardButton("😊 Настроение")],
+        [KeyboardButton("📊 Статистика"), KeyboardButton("💡 Совет")],
+        [KeyboardButton("⏰ Напомнить"), KeyboardButton("📤 Отчет")]
     ]
     return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
 
