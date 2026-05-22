@@ -16,26 +16,36 @@ WAITING_TIME, WAITING_MESSAGE, WAITING_REASON = range(3)
 # === БАЗОВЫЕ КОМАНДЫ ===
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+    from database import add_user
     add_user(user.id, user.username, user.first_name)
+    
     welcome_text = f"""
-👋 Привет, {user.first_name}! Я помощник для родителей детей с РАС.
+👋 Привет, {user.first_name}!
 
-📝 **Основные команды:**
-🌙 `/sleep 7.5` - записать сон
-🍎 `/food гречка` - записать еду
-😭 `/meltdown 4` - записать истерику
-😊 `/mood 3` - записать настроение
-📊 `/stats` - отчет за неделю
-💡 `/tip` - совет дня
-⏰ `/remind` - установить напоминание
-📤 `/report` - экспорт для врача
+Я бот, который помогает родителям детей с РАС отслеживать важные события и изменения.
+
+📋 *Что я умею:*
+• 🌙 Записывать сон
+• 🍎 Записывать еду
+• 😥 Отслеживать срывы и их причины
+• 😊 Оценивать настроение
+• 💊 Вести дневник приёма лекарств (в разработке)
+• 📊 Показывать статистику за неделю
+• 📤 Готовить отчёт для врача (в разработке)
+• 💡 Давать полезные советы
+
+👉 *Как пользоваться:*
+Просто нажимай на кнопки внизу экрана — всё интуитивно понятно.
+
+Если что-то непонятно, нажми «❓ Помощь».
+
+Хорошего дня! 🌟
 """
     await update.message.reply_text(
         welcome_text, 
         parse_mode="Markdown",
-        reply_markup=get_main_keyboard()  # ← ЭТО ДОБАВИТЬ
+        reply_markup=get_main_keyboard()
     )
-
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await cmd_start(update, context)
 
