@@ -42,6 +42,22 @@ def init_db():
 
         conn.commit()
 
+def add_user(user_id: int, username: str = None, first_name: str = None):
+    """Добавление нового пользователя (если ещё не существует)"""
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute('''INSERT OR IGNORE INTO users (user_id, username, first_name) 
+                     VALUES (?, ?, ?)''',
+                  (user_id, username, first_name))
+        conn.commit()
+
+def get_all_users():
+    """Получение списка всех пользователей"""
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute('SELECT user_id, username, first_name, created_at FROM users ORDER BY created_at DESC')
+        return c.fetchall()
+
 def add_event(user_id: int, event_type: str, value: str = "", severity: int = None, note: str = ""):
     """Добавление события"""
     with get_connection() as conn:
