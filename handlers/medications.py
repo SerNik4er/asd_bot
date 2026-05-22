@@ -6,15 +6,22 @@ from database import add_medication, get_active_medications
 NAME, DOSAGE, START_DATE = range(3)
 
 async def medications_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Главное меню лекарств"""
+    """Главное меню лекарств (вызывается по кнопке)"""
+    from keyboards import get_medications_keyboard
+    
     text = (
         "💊 *Управление лекарствами*\n\n"
-        "➕ /med_add — добавить новое лекарство\n"
-        "📋 /med_list — список моих лекарств\n"
-        "💊 /med_take — отметить приём\n"
-        "📊 /med_report — отчёт для врача"
+        "Здесь вы можете:\n"
+        "• Добавить новое лекарство\n"
+        "• Посмотреть список активных препаратов\n"
+        "• Отметить приём\n"
+        "• Сформировать отчёт для врача"
     )
-    await update.message.reply_text(text, parse_mode="Markdown")
+    await update.message.reply_text(
+        text, 
+        parse_mode="Markdown",
+        reply_markup=get_medications_keyboard()
+    )
 
 async def add_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Начало диалога добавления лекарства"""
