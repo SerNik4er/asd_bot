@@ -103,7 +103,46 @@ def main():
     # Создаём приложение
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # === АНГЛИЙСКИЕ КОМАНДЫ ===
+    # ========== 1. СНАЧАЛА ВСЕ ДИАЛОГИ (ConversationHandler) ==========
+    
+    # Диалог для напоминаний
+    remind_conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("remind", remind_start)],
+        states={
+            WAITING_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_time)],
+            WAITING_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_message)],
+        },
+        fallbacks=[CommandHandler("cancel", remind_cancel)],
+    )
+    app.add_handler(remind_conv_handler)
+
+    # Диалог для причин истерик
+    reason_conv_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(ask_reason_callback, pattern="add_reason")],
+        states={
+            WAITING_REASON: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_reason)],
+        },
+        fallbacks=[CommandHandler("cancel", reason_cancel)],
+    )
+    app.add_handler(reason_conv_handler)
+
+    # Диалог добавления лекарства
+    med_conv = ConversationHandler(
+        entry_points=[
+            CommandHandler("med_add", add_start),
+            MessageHandler(filters.Regex("^➕ Добавить лекарство$"), add_start)
+        ],
+        states={
+            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_name)],
+            DOSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_dosage)],
+            START_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_start_date)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+    app.add_handler(med_conv)
+
+    # ========== 2. ПОТОМ ВСЕ КОМАНДЫ (CommandHandler) ==========
+    
     app.add_handler(CommandHandler("sleep", track_sleep))
     app.add_handler(CommandHandler("food", track_food))
     app.add_handler(CommandHandler("meltdown", track_meltdown))
@@ -115,52 +154,14 @@ def main():
     app.add_handler(CommandHandler("remind", remind_start))
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("start", cmd_start))
-
-    # === АДМИНСКАЯ КОМАНДА ===
     app.add_handler(CommandHandler("users", users_list))
-
-    # === ОБРАБОТЧИК КНОПОК (РУССКИЕ КОМАНДЫ) ===
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-
-    # === ДИАЛОГ ДЛЯ НАПОМИНАНИЙ ===
-    remind_conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("remind", remind_start)],
-        states={
-            WAITING_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_time)],
-            WAITING_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_message)],
-        },
-        fallbacks=[CommandHandler("cancel", remind_cancel)],
-    )
-    app.add_handler(remind_conv_handler)
-
-    # === ДИАЛОГ ДЛЯ ПРИЧИН ИСТЕРИК ===
-    reason_conv_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(ask_reason_callback, pattern="add_reason")],
-        states={
-            WAITING_REASON: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_reason)],
-        },
-        fallbacks=[CommandHandler("cancel", reason_cancel)],
-    )
-    app.add_handler(reason_conv_handler)
-    # Команды для лекарств
     app.add_handler(CommandHandler("med", medications_menu))
     app.add_handler(CommandHandler("med_list", list_medications))
 
-    # Диалог добавления лекарства
-    med_conv = ConversationHandler(
-        entry_points=[
-            CommandHandler("med_add", add_start),
-            MessageHandler(filters.Regex("^➕ Добавить лекарство$"), add_start)  # ← ДОБАВИТЬ ЭТУ СТРОКУ
-        ],
-        states={
-            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_name)],
-            DOSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_dosage)],
-            START_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_start_date)],
-        },
-        fallbacks=[CommandHandler("cancel", cancel)],
-    )
-    app.add_handler(med_conv)
-    # === ИНИЦИАЛИЗАЦИЯ ===
+    # ========== 3. В САМОМ КОНЦЕ — ОБРАБОТЧИК КНОПОК ==========
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
+    # ========== ИНИЦИАЛИЗАЦИЯ ==========
     init_db()
     print("База данных готова")
 
