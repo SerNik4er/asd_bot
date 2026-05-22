@@ -46,8 +46,32 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
         reply_markup=get_main_keyboard()
     )
+
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await cmd_start(update, context)
+    help_text = """
+❓ *Помощь*
+
+*Как пользоваться ботом?*
+Просто нажимай на кнопки под сообщениями — всё, что нужно, уже там.
+
+*Что означают кнопки?*
+• 🌙 Сон — записать сколько спал
+• 🍎 Еда — записать что ел
+• 😭 Истерика — записать силу и причину
+• 😊 Настроение — оценить от 1 до 5
+• 📊 Статистика — отчёт за неделю
+• 💡 Совет — полезный совет дня
+• ⏰ Напомнить — установить напоминание
+• 📤 Отчет — экспорт для врача
+• 💊 Лекарства — управление препаратами
+
+*Если бот не отвечает?*
+Попробуй написать /start заново.
+
+*Хочешь предложить идею?*
+Напиши мне в Telegram: @ser4ernik
+"""
+    await update.message.reply_text(help_text, parse_mode="Markdown")
 
 # === ТРЕКЕРЫ ===
 async def track_sleep(update: Update, context: ContextTypes.DEFAULT_TYPE):
