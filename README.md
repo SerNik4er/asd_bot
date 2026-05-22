@@ -6,6 +6,8 @@ markdown
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+[![Telegram](https://img.shields.io/badge/Telegram-@pwk_rasbot-blue?logo=telegram)](https://t.me/pwk_rasbot)
+
 ## 📋 Описание
 
 Этот бот создан для помощи детям с расстройствами аутистического спектра и их родителям. Бот помогает отслеживать срывы, даёт напоминания и предоставляет полезные материалы.
