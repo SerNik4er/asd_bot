@@ -4,6 +4,12 @@ from telegram.ext import (
     filters, CallbackQueryHandler, ConversationHandler,
     ContextTypes
 )
+from handlers.medications import (
+    medications_menu,
+    add_start, add_name, add_dosage, add_start_date, cancel,
+    list_medications,
+    NAME, DOSAGE, START_DATE
+)
 from config import BOT_TOKEN
 from database import init_db
 from scheduler_tasks import load_active_reminders
@@ -121,7 +127,21 @@ def main():
         fallbacks=[CommandHandler("cancel", reason_cancel)],
     )
     app.add_handler(reason_conv_handler)
+    # Команды для лекарств
+    app.add_handler(CommandHandler("med", medications_menu))
+    app.add_handler(CommandHandler("med_list", list_medications))
 
+    # Диалог добавления лекарства
+    med_conv = ConversationHandler(
+        entry_points=[CommandHandler("med_add", add_start)],
+        states={
+            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_name)],
+            DOSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_dosage)],
+            START_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_start_date)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+    app.add_handler(med_conv)
     # === ИНИЦИАЛИЗАЦИЯ ===
     init_db()
     print("База данных готова")
