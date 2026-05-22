@@ -4,7 +4,7 @@ def get_main_keyboard():
     """Главная клавиатура с текстовыми кнопками (без /)"""
     buttons = [
         [KeyboardButton("🌙 Сон"), KeyboardButton("🍎 Еда")],
-        [KeyboardButton("😭 Истерика"), KeyboardButton("😊 Настроение")],
+        [KeyboardButton("😥 Срыв"), KeyboardButton("😊 Настроение")],
         [KeyboardButton("📊 Статистика"), KeyboardButton("💊 Лекарства")],
         [KeyboardButton("⏰ Напомнить"), KeyboardButton("📤 Отчет")],
         [KeyboardButton("❓ Помощь"), KeyboardButton("💡 Совет")]
