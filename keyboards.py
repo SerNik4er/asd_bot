@@ -5,17 +5,20 @@ def get_main_keyboard():
     buttons = [
         [KeyboardButton("🌙 Сон"), KeyboardButton("🍎 Еда")],
         [KeyboardButton("😭 Истерика"), KeyboardButton("😊 Настроение")],
-        [KeyboardButton("📊 Статистика"), KeyboardButton("💡 Совет")],
+        [KeyboardButton("📊 Статистика"), KeyboardButton("💊 Лекарства")],
         [KeyboardButton("⏰ Напомнить"), KeyboardButton("📤 Отчет")],
-        [KeyboardButton("❓ Помощь")]
+        [KeyboardButton("❓ Помощь"), KeyboardButton("💡 Совет")]
     ]
     return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
 
 def get_medications_keyboard():
+    """Клавиатура меню управления лекарствами"""
     buttons = [
-        [KeyboardButton("➕ Добавить лекарство"), KeyboardButton("📋 Список лекарств")],
-        [KeyboardButton("💊 Отметить приём"), KeyboardButton("📊 Отчёт по лекарствам")],
-        [KeyboardButton("🔙 Главное меню")]
+        [KeyboardButton("➕ Добавить лекарство")],
+        [KeyboardButton("📋 Мои лекарства")],
+        [KeyboardButton("💊 Отметить приём")],
+        [KeyboardButton("📊 Отчёт по лекарствам")],
+        [KeyboardButton("🔙 Назад в главное меню")]
     ]
     return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
 
