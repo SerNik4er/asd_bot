@@ -29,7 +29,11 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ⏰ `/remind` - установить напоминание
 📤 `/report` - экспорт для врача
 """
-    await update.message.reply_text(welcome_text, parse_mode="Markdown")
+    await update.message.reply_text(
+        welcome_text, 
+        parse_mode="Markdown",
+        reply_markup=get_main_keyboard()  # ← ЭТО ДОБАВИТЬ
+    )
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await cmd_start(update, context)
