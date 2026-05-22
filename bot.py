@@ -46,6 +46,18 @@ def main():
     app.add_handler(CommandHandler("stats", show_stats))
     app.add_handler(CommandHandler("report", export_report))
     app.add_handler(CommandHandler("tip", random_tip))
+    app.add_handler(CommandHandler("сон", track_sleep))
+    app.add_handler(CommandHandler("еда", track_food))
+    app.add_handler(CommandHandler("истерика", track_meltdown))
+    app.add_handler(CommandHandler("туалет", track_toilet))
+    app.add_handler(CommandHandler("настроение", track_mood))
+    app.add_handler(CommandHandler("статистика", show_stats))
+    app.add_handler(CommandHandler("отчет", export_report))
+    app.add_handler(CommandHandler("совет", random_tip))
+    app.add_handler(CommandHandler("напомнить", remind_start))
+    app.add_handler(CommandHandler("помощь", cmd_help))
+    app.add_handler(CommandHandler("старт", cmd_start))
+    app.add_handler(CommandHandler("пользователи", users_list))
 
     # === АДМИНСКАЯ КОМАНДА ===
     app.add_handler(CommandHandler("users", users_list))
