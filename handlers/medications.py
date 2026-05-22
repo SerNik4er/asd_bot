@@ -40,18 +40,28 @@ async def add_dosage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Введите дату начала приёма (ДД.ММ.ГГГГ):")
     return START_DATE
 
+def escape_markdown(text: str) -> str:
+    """Экранирует спецсимволы для Telegram Markdown"""
+    escape_chars = r'_*[]()~`>#+-=|{}.!'
+    return ''.join(f'\\{char}' if char in escape_chars else char for char in text)
+
 async def add_start_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
     start_date = update.message.text
     user_id = update.effective_user.id
     name = context.user_data['med_name']
     dosage = context.user_data['med_dosage']
     
+    # Экранируем спецсимволы
+    name_escaped = escape_markdown(name)
+    dosage_escaped = escape_markdown(dosage)
+    date_escaped = escape_markdown(start_date)
+    
     med_id = add_medication(user_id, name, dosage, start_date)
     
     await update.message.reply_text(
-        f"✅ Лекарство *{name}* ({dosage}) добавлено!\n"
-        f"📅 Дата начала: {start_date}\n\n"
-        f"Теперь вы можете отмечать приёмы командой /med_take",
+        f"✅ Лекарство *{name_escaped}* ({dosage_escaped}) добавлено!\n"
+        f"📅 Дата начала: {date_escaped}\n\n"
+        f"Теперь вы можете отмечать приёмы в меню лекарств.",
         parse_mode="Markdown"
     )
     return ConversationHandler.END
