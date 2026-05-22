@@ -1,37 +1,42 @@
+import io
 from datetime import datetime
-from io import BytesIO
-from aiogram.types import BufferedInputFile
-import random
+from telegram import BufferedInputFile
 
-def format_report(user_id: str, events):
-    """Форматирование отчета для врача"""
-    report = f"Отчет для врача\nДата: {datetime.now().strftime('%d.%m.%Y')}\n"
-    report += "=" * 49 + "\n\n"
-
-    current_date = ""
+def format_report(user_id, events):
+    """Форматирует события в читаемый отчёт"""
+    report_lines = [f"📋 Отчёт для пользователя {user_id}", f"📅 Период: {datetime.now().strftime('%d.%m.%Y')}", "", "=" * 50, ""]
+    
     for event in events:
-        event_date = event[0][:10]
-        if current_date != event_date:
-            report += f"\n📅 {event_date}:\n"
-            current_date = event_date
+        event_type, value, severity, created_at = event
+        time_str = created_at.strftime("%d.%m.%Y %H:%M")
+        
+        if event_type == "sleep":
+            report_lines.append(f"🌙 Сон: {value} ч ({time_str})")
+        elif event_type == "food":
+            report_lines.append(f"🍽️ Еда: {value} ({time_str})")
+        elif event_type == "meltdown":
+            severity_str = "🔴" * severity + "⚪" * (5 - severity)
+            report_lines.append(f"😭 Истерика: {severity}/5 {severity_str} ({time_str})")
+        elif event_type == "toilet":
+            emoji = "✅" if "успех" in value.lower() else "⚠️"
+            report_lines.append(f"🚽 Туалет: {value} {emoji} ({time_str})")
+        elif event_type == "mood":
+            mood_emojis = {1: "😭", 2: "😟", 3: "😐", 4: "🙂", 5: "😄"}
+            mood_emoji = mood_emojis.get(severity, "😐")
+            report_lines.append(f"😊 Настроение: {mood_emoji} {severity}/5 ({time_str})")
+    
+    return "\n".join(report_lines)
 
-        event_type_emoji = {
-            "sleep": "🌙", "food": "🍎", "toilet": "🚽", "meltdown": "😭", "mood": "😊"}.get(event[1], "📝")
-
-        report += f" {event_type_emoji} {event[1]}: "
-        if event[3]:
-            report += f"сила {event[3]}/5"
-        else:
-            report += f" ({event[4]})"
-        report += "/n"
-    return report
-
-def create_report_file(report_text: str):
-    """Создание файла с отчетом"""
-    file = BytesIO(report_text.encode('utf-8'))
-    file.name = f"report_{datetime.now().strftime('%Y%m%d')}.txt"
-    return BufferedInputFile(file.getvalue(), filename=file.name)
+def create_report_file(report_text):
+    """Создаёт файл с отчётом для отправки"""
+    file_obj = io.BytesIO()
+    file_obj.write(report_text.encode('utf-8'))
+    file_obj.seek(0)
+    return BufferedInputFile(file_obj.getvalue(), filename=f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
 
 def get_random_tip(tips_list):
-    """Получение случайного совета"""
+    """Возвращает случайный совет из списка"""
+    import random
+    if not tips_list:
+        return "💡 Старайтесь соблюдать режим дня — это снижает тревожность."
     return random.choice(tips_list)
