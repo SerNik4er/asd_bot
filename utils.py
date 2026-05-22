@@ -1,6 +1,5 @@
 import io
 from datetime import datetime
-from telegram import BufferedInputFile
 
 def format_report(user_id, events):
     """Форматирует события в читаемый отчёт"""
@@ -32,7 +31,8 @@ def create_report_file(report_text):
     file_obj = io.BytesIO()
     file_obj.write(report_text.encode('utf-8'))
     file_obj.seek(0)
-    return BufferedInputFile(file_obj.getvalue(), filename=f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+    file_obj.name = f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    return file_obj
 
 def get_random_tip(tips_list):
     """Возвращает случайный совет из списка"""
