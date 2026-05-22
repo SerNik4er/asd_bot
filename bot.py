@@ -1,6 +1,6 @@
 import asyncio
 from aiogram import Bot, Dispatcher
-from config import TOKEN
+from config import BOT_TOKEN
 from database import init_db
 from handlers import router
 from scheduler_tasks import scheduler, load_active_reminders
