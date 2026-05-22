@@ -1,6 +1,5 @@
 markdown
 # 🤖 ASD Bot
-
 [![Telegram](https://img.shields.io/badge/Telegram-@pwk_rasbot-blue?logo=telegram)](https://t.me/pwk_rasbot)
 
 Телеграм-бот для помощи и поддержки.
