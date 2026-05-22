@@ -29,8 +29,10 @@ async def add_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return NAME
 
 async def add_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f"DEBUG: add_name вызвана, текст={update.message.text}")
     context.user_data['med_name'] = update.message.text
     await update.message.reply_text("Введите дозировку (например, 0.5 мг):")
+    print("DEBUG: возвращаем DOSAGE")
     return DOSAGE
 
 async def add_dosage(update: Update, context: ContextTypes.DEFAULT_TYPE):
