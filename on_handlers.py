@@ -4,7 +4,7 @@ from collections import Counter
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
 
-from database import add_event, get_stats, get_events_for_report, add_reminder, update_last_meltdown_reason
+from database import add_event, get_stats, get_events_for_report, add_reminder, update_last_meltdown_reason, add_user
 from keyboards import get_meltdown_keyboard, get_main_keyboard
 from utils import format_report, create_report_file, get_random_tip
 from scheduler_tasks import schedule_reminder
@@ -16,6 +16,7 @@ WAITING_TIME, WAITING_MESSAGE, WAITING_REASON = range(3)
 # === БАЗОВЫЕ КОМАНДЫ ===
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+    add_user(user.id, user.username, user.first_name)
     welcome_text = f"""
 👋 Привет, {user.first_name}! Я помощник для родителей детей с РАС.
 
