@@ -148,7 +148,10 @@ def main():
 
     # Диалог добавления лекарства
     med_conv = ConversationHandler(
-        entry_points=[CommandHandler("med_add", add_start)],
+        entry_points=[
+            CommandHandler("med_add", add_start),
+            MessageHandler(filters.Regex("^➕ Добавить лекарство$"), add_start)  # ← ДОБАВИТЬ ЭТУ СТРОКУ
+        ],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_name)],
             DOSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_dosage)],
