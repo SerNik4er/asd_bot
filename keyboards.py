@@ -11,6 +11,14 @@ def get_main_keyboard():
     ]
     return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
 
+def get_medications_keyboard():
+    buttons = [
+        [KeyboardButton("➕ Добавить лекарство"), KeyboardButton("📋 Список лекарств")],
+        [KeyboardButton("💊 Отметить приём"), KeyboardButton("📊 Отчёт по лекарствам")],
+        [KeyboardButton("🔙 Главное меню")]
+    ]
+    return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+
 def get_meltdown_keyboard():
     """Клавиатура для выбора причины истерики"""
     keyboard = [
