@@ -4,8 +4,6 @@ from dotenv import load_dotenv
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "autism_helper.db")
-if not BOT_TOKEN:
-    raise ValueError("Токен не найден! Проверьте файл .env")
 
 # Список полезных советов (для рассылки или команды /tip)
 TIPS = [
@@ -15,3 +13,8 @@ TIPS = [
     "Хвалите ребёнка за каждый успех, даже маленький.",
     "Поговорите со специалистом, если чувствуете, что вам нужна поддержка.",
 ]
+
+
+if not BOT_TOKEN:
+    raise ValueError("Токен не найден! Проверьте файл .env")
+
