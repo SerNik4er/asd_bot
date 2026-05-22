@@ -22,7 +22,7 @@ async def main():
     await load_active_reminders(bot)
 
     # Запускаем планировщик
-    scheduler.start()
+   # scheduler.start()
 
     # Запускаем бота
     print("Бот запущен! 🚀")
