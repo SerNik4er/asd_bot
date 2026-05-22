@@ -40,6 +40,30 @@ def init_db():
                 message TEXT,
                 is_active INTEGER DEFAULT 1)''')
 
+         # Новая таблица: лекарства
+        c.execute('''CREATE TABLE IF NOT EXISTS medications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            name TEXT,
+            dosage TEXT,
+            start_date TEXT,
+            end_date TEXT DEFAULT NULL,
+            status TEXT DEFAULT 'active'
+        )''')
+
+        # Новая таблица: приёмы лекарств
+        c.execute('''CREATE TABLE IF NOT EXISTS medication_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            medication_id INTEGER,
+            taken_date TEXT,
+            reaction TEXT,
+            side_effects TEXT,
+            improvements TEXT,
+            notes TEXT
+        )''')
+
+        conn.commit()
+
         conn.commit()
 
 def add_user(user_id: int, username: str = None, first_name: str = None):
@@ -69,6 +93,36 @@ def add_event(user_id: int, event_type: str, value: str = "", severity: int = No
                 (user_id, now, event_type, value, severity, note))
         conn.commit()
 
+def add_medication(user_id: int, name: str, dosage: str, start_date: str):
+    """Добавление нового лекарства"""
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute('''INSERT INTO medications (user_id, name, dosage, start_date, status)
+                     VALUES (?, ?, ?, ?, 'active')''',
+                  (user_id, name, dosage, start_date))
+        conn.commit()
+        return c.lastrowid
+
+def get_active_medications(user_id: int):
+    """Список активных лекарств пользователя"""
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute('''SELECT id, name, dosage, start_date
+                     FROM medications
+                     WHERE user_id = ? AND status = 'active'
+                     ORDER BY start_date DESC''', (user_id,))
+        return c.fetchall()
+
+def log_medication_take(medication_id: int, reaction: str = None, side_effects: str = None):
+    """Запись о приёме лекарства"""
+    with get_connection() as conn:
+        c = conn.cursor()
+        now = datetime.now().isoformat()
+        c.execute('''INSERT INTO medication_logs (medication_id, taken_date, reaction, side_effects)
+                     VALUES (?, ?, ?, ?)''',
+                  (medication_id, now, reaction, side_effects))
+        conn.commit()
+        
 def get_stats(user_id: int, days: int = 7):
     """Получение статистики за последние N дней"""
     with get_connection() as conn:
