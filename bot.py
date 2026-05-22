@@ -1,4 +1,9 @@
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ConversationHandler
+from telegram import Update
+from telegram.ext import (
+    Application, CommandHandler, MessageHandler, 
+    filters, CallbackQueryHandler, ConversationHandler,
+    ContextTypes
+)
 from config import BOT_TOKEN
 from database import init_db
 from scheduler_tasks import load_active_reminders
@@ -29,7 +34,10 @@ from on_handlers import (
 
 # Импорт админской команды
 from handlers.admin import users_list
+
+
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик кнопок с русским текстом"""
     text = update.message.text
     
     if text == "🌙 Сон":
@@ -52,41 +60,48 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await remind_start(update, context)
     elif text == "📤 Отчет":
         await export_report(update, context)
+    else:
+        # Проверяем, есть ли ожидание ввода
+        awaiting = context.user_data.get('awaiting')
+        if awaiting == 'sleep':
+            context.args = [text]
+            await track_sleep(update, context)
+        elif awaiting == 'food':
+            context.args = [text]
+            await track_food(update, context)
+        elif awaiting == 'meltdown':
+            context.args = [text]
+            await track_meltdown(update, context)
+        elif awaiting == 'mood':
+            context.args = [text]
+            await track_mood(update, context)
+        context.user_data.pop('awaiting', None)
 
 
 def main():
     # Создаём приложение
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # === ОБЫЧНЫЕ КОМАНДЫ ===
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    # app.add_handler(CommandHandler("start", cmd_start))
-    # app.add_handler(CommandHandler("help", cmd_help))
-    # app.add_handler(CommandHandler("sleep", track_sleep))
-    # app.add_handler(CommandHandler("food", track_food))
-    # app.add_handler(CommandHandler("meltdown", track_meltdown))
-    # app.add_handler(CommandHandler("toilet", track_toilet))
-    # app.add_handler(CommandHandler("mood", track_mood))
-    # app.add_handler(CommandHandler("stats", show_stats))
-    # app.add_handler(CommandHandler("report", export_report))
-    # app.add_handler(CommandHandler("tip", random_tip))
-    # app.add_handler(CommandHandler("сон", track_sleep))
-    # app.add_handler(CommandHandler("еда", track_food))
-    # app.add_handler(CommandHandler("истерика", track_meltdown))
-    # app.add_handler(CommandHandler("туалет", track_toilet))
-    # app.add_handler(CommandHandler("настроение", track_mood))
-    # app.add_handler(CommandHandler("статистика", show_stats))
-    # app.add_handler(CommandHandler("отчет", export_report))
-    # app.add_handler(CommandHandler("совет", random_tip))
-    # app.add_handler(CommandHandler("напомнить", remind_start))
-    # app.add_handler(CommandHandler("помощь", cmd_help))
-    # app.add_handler(CommandHandler("старт", cmd_start))
-    # app.add_handler(CommandHandler("пользователи", users_list))
+    # === АНГЛИЙСКИЕ КОМАНДЫ ===
+    app.add_handler(CommandHandler("sleep", track_sleep))
+    app.add_handler(CommandHandler("food", track_food))
+    app.add_handler(CommandHandler("meltdown", track_meltdown))
+    app.add_handler(CommandHandler("toilet", track_toilet))
+    app.add_handler(CommandHandler("mood", track_mood))
+    app.add_handler(CommandHandler("stats", show_stats))
+    app.add_handler(CommandHandler("report", export_report))
+    app.add_handler(CommandHandler("tip", random_tip))
+    app.add_handler(CommandHandler("remind", remind_start))
+    app.add_handler(CommandHandler("help", cmd_help))
+    app.add_handler(CommandHandler("start", cmd_start))
 
     # === АДМИНСКАЯ КОМАНДА ===
     app.add_handler(CommandHandler("users", users_list))
 
-    # === ДИАЛОГ ДЛЯ НАПОМИНАНИЙ (ConversationHandler) ===
+    # === ОБРАБОТЧИК КНОПОК (РУССКИЕ КОМАНДЫ) ===
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
+    # === ДИАЛОГ ДЛЯ НАПОМИНАНИЙ ===
     remind_conv_handler = ConversationHandler(
         entry_points=[CommandHandler("remind", remind_start)],
         states={
@@ -97,7 +112,7 @@ def main():
     )
     app.add_handler(remind_conv_handler)
 
-    # === ДИАЛОГ ДЛЯ ПРИЧИН ИСТЕРИК (по кнопке) ===
+    # === ДИАЛОГ ДЛЯ ПРИЧИН ИСТЕРИК ===
     reason_conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(ask_reason_callback, pattern="add_reason")],
         states={
@@ -111,7 +126,7 @@ def main():
     init_db()
     print("База данных готова")
 
-    # Запускаем бота (без asyncio.run)
+    # Запуск бота
     print("Бот запущен! 🚀")
     app.run_polling()
 
