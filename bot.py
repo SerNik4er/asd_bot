@@ -29,6 +29,29 @@ from on_handlers import (
 
 # Импорт админской команды
 from handlers.admin import users_list
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    
+    if text == "🌙 Сон":
+        await update.message.reply_text("Введите время сна в часах, например: 7.5")
+        context.user_data['awaiting'] = 'sleep'
+    elif text == "🍎 Еда":
+        await update.message.reply_text("Что сегодня ел ребенок?")
+        context.user_data['awaiting'] = 'food'
+    elif text == "😭 Истерика":
+        await update.message.reply_text("Оцените силу от 1 до 5")
+        context.user_data['awaiting'] = 'meltdown'
+    elif text == "😊 Настроение":
+        await update.message.reply_text("Оцените настроение от 1 до 5")
+        context.user_data['awaiting'] = 'mood'
+    elif text == "📊 Статистика":
+        await show_stats(update, context)
+    elif text == "💡 Совет":
+        await random_tip(update, context)
+    elif text == "⏰ Напомнить":
+        await remind_start(update, context)
+    elif text == "📤 Отчет":
+        await export_report(update, context)
 
 
 def main():
@@ -36,6 +59,7 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
     # === ОБЫЧНЫЕ КОМАНДЫ ===
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("sleep", track_sleep))
