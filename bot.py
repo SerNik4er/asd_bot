@@ -66,7 +66,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await remind_start(update, context)
     elif text == "📤 Отчет":
         await export_report(update, context)
-     elif text == "💊 Лекарства":
+    elif text == "💊 Лекарства":
         from handlers.medications import medications_menu
         await medications_menu(update, context)
     elif text == "➕ Добавить лекарство":
