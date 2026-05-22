@@ -52,7 +52,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "🍎 Еда":
         await update.message.reply_text("Что сегодня ел ребенок?")
         context.user_data['awaiting'] = 'food'
-    elif text == "😭 Истерика":
+    elif text == "😥 Срыв":
         await update.message.reply_text("Оцените силу от 1 до 5")
         context.user_data['awaiting'] = 'meltdown'
     elif text == "😊 Настроение":
@@ -66,6 +66,20 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await remind_start(update, context)
     elif text == "📤 Отчет":
         await export_report(update, context)
+     elif text == "💊 Лекарства":
+        from handlers.medications import medications_menu
+        await medications_menu(update, context)
+    elif text == "➕ Добавить лекарство":
+        from handlers.medications import add_start
+        await add_start(update, context)
+    elif text == "📋 Мои лекарства":
+        from handlers.medications import list_medications
+        await list_medications(update, context)
+    elif text == "🔙 Назад в главное меню":
+        await update.message.reply_text(
+            "Главное меню:",
+            reply_markup=get_main_keyboard()
+        )
     else:
         # Проверяем, есть ли ожидание ввода
         awaiting = context.user_data.get('awaiting')
