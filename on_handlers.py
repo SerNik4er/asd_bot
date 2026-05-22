@@ -1,11 +1,8 @@
 import re
 from datetime import datetime, timedelta
 from collections import Counter
-from aiogram import Router, F, Bot
-from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup  # ← Добавить эту строку
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram.ext import ContextTypes, ConversationHandler
 
 from database import add_event, get_stats, get_events_for_report, add_reminder, update_last_meltdown_reason
 from keyboards import get_meltdown_keyboard, get_main_keyboard
@@ -13,106 +10,94 @@ from utils import format_report, create_report_file, get_random_tip
 from scheduler_tasks import schedule_reminder
 from config import TIPS
 
-# ===== СОСТОЯНИЯ (добавить прямо сюда) =====
-class ReminderState(StatesGroup):
-    waiting_for_time = State()
-    waiting_for_message = State()
-
-class ReasonState(StatesGroup):
-    waiting_for_reason = State()
-
-router = Router()
-
+# Состояния для ConversationHandler
+WAITING_TIME, WAITING_MESSAGE, WAITING_REASON = range(3)
 
 # === БАЗОВЫЕ КОМАНДЫ ===
-@router.message(Command("start"))
-async def cmd_start(message: Message):
-    welcome_text = """
-👋 Привет! Я помощник для родителей детей с РАС.
+async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    welcome_text = f"""
+👋 Привет, {user.first_name}! Я помощник для родителей детей с РАС.
 
 📝 **Основные команды:**
-🌙 `/сон 7.5` - записать сон
-🍎 `/еда гречка` - записать еду
-😭 `/истерика 4` - записать истерику
-😊 `/настроение 3` - записать настроение
-📊 `/статистика` - отчет за неделю
-💡 `/совет` - совет дня
-⏰ `/напомнить` - установить напоминание
-📤 `/отчет` - экспорт для врача
+🌙 `/sleep 7.5` - записать сон
+🍎 `/food гречка` - записать еду
+😭 `/meltdown 4` - записать истерику
+😊 `/mood 3` - записать настроение
+📊 `/stats` - отчет за неделю
+💡 `/tip` - совет дня
+⏰ `/remind` - установить напоминание
+📤 `/report` - экспорт для врача
 """
-    await message.answer(welcome_text, parse_mode="Markdown", reply_markup=get_main_keyboard())
+    await update.message.reply_text(welcome_text, parse_mode="Markdown")
 
+async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await cmd_start(update, context)
 
 # === ТРЕКЕРЫ ===
-@router.message(Command("сон"))
-async def track_sleep(message: Message):
-    args = message.text.split(maxsplit=1)
-    if len(args) < 2:
-        await message.answer("❌ Укажите время. Пример: `/сон 7.5` или `/сон 23:00-07:00`")
+async def track_sleep(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    if not args:
+        await update.message.reply_text("❌ Укажите время. Пример: `/sleep 7.5` или `/sleep 23:00-07:00`")
         return
-    add_event(message.from_user.id, "sleep", args[1])
-    await message.answer(f"✅ Записал сон: {args[1]} ч. 🌙")
+    value = " ".join(args)
+    add_event(update.effective_user.id, "sleep", value)
+    await update.message.reply_text(f"✅ Записал сон: {value} ч. 🌙")
 
-
-@router.message(Command("еда"))
-async def track_food(message: Message):
-    args = message.text.split(maxsplit=1)
-    if len(args) < 2:
-        await message.answer("❌ Укажите, что ел ребенок. Пример: `/еда гречка, суп`")
+async def track_food(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    if not args:
+        await update.message.reply_text("❌ Укажите, что ел ребенок. Пример: `/food гречка, суп`")
         return
-    add_event(message.from_user.id, "food", args[1])
-    await message.answer(f"✅ Записал еду: {args[1]} 🍽️")
+    value = " ".join(args)
+    add_event(update.effective_user.id, "food", value)
+    await update.message.reply_text(f"✅ Записал еду: {value} 🍽️")
 
-
-@router.message(Command("истерика"))
-async def track_meltdown(message: Message):
-    args = message.text.split(maxsplit=1)
-    if len(args) < 2:
-        await message.answer("❌ Укажите силу от 1 до 5. Пример: `/истерика 4`")
+async def track_meltdown(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    if not args:
+        await update.message.reply_text("❌ Укажите силу от 1 до 5. Пример: `/meltdown 4`")
         return
     try:
-        severity = max(1, min(5, int(args[1])))
+        severity = max(1, min(5, int(args[0])))
     except ValueError:
-        await message.answer("❌ Сила должна быть числом от 1 до 5")
+        await update.message.reply_text("❌ Сила должна быть числом от 1 до 5")
         return
 
-    add_event(message.from_user.id, "meltdown", "", severity)
-    await message.answer(f"✅ Записал истерику (сила: {severity}/5). Хотите указать причину?",
-                         reply_markup=get_meltdown_keyboard())
+    add_event(update.effective_user.id, "meltdown", "", severity)
+    await update.message.reply_text(
+        f"✅ Записал истерику (сила: {severity}/5). Хотите указать причину?",
+        reply_markup=get_meltdown_keyboard()
+    )
 
-
-@router.message(Command("туалет"))
-async def track_toilet(message: Message):
-    args = message.text.split(maxsplit=1)
-    if len(args) < 2:
-        await message.answer("❌ Укажите результат. Пример: `/туалет успех` или `/туалет мимо`")
+async def track_toilet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    if not args:
+        await update.message.reply_text("❌ Укажите результат. Пример: `/toilet успех` или `/toilet мимо`")
         return
-    add_event(message.from_user.id, "toilet", args[1])
-    emoji = "✅🎉" if "успех" in args[1].lower() else "😔💪"
-    await message.answer(f"Записал туалет: {args[1]} {emoji}")
+    value = " ".join(args)
+    add_event(update.effective_user.id, "toilet", value)
+    emoji = "✅🎉" if "успех" in value.lower() else "😔💪"
+    await update.message.reply_text(f"Записал туалет: {value} {emoji}")
 
-
-@router.message(Command("настроение"))
-async def track_mood(message: Message):
-    args = message.text.split(maxsplit=1)
-    if len(args) < 2:
-        await message.answer("❌ Укажите настроение от 1 до 5. Пример: `/настроение 3`")
+async def track_mood(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    if not args:
+        await update.message.reply_text("❌ Укажите настроение от 1 до 5. Пример: `/mood 3`")
         return
     try:
-        mood = max(1, min(5, int(args[1])))
+        mood = max(1, min(5, int(args[0])))
     except ValueError:
-        await message.answer("❌ Настроение должно быть числом от 1 до 5")
+        await update.message.reply_text("❌ Настроение должно быть числом от 1 до 5")
         return
 
-    add_event(message.from_user.id, "mood", str(mood), mood)
+    add_event(update.effective_user.id, "mood", str(mood), mood)
     mood_emoji = {1: "😭", 2: "😟", 3: "😐", 4: "🙂", 5: "😄"}
-    await message.answer(f"✅ Записал настроение: {mood_emoji[mood]} ({mood}/5)")
-
+    await update.message.reply_text(f"✅ Записал настроение: {mood_emoji[mood]} ({mood}/5)")
 
 # === СТАТИСТИКА И ОТЧЕТЫ ===
-@router.message(Command("статистика"))
-async def show_stats(message: Message):
-    stats = get_stats(message.from_user.id)
+async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    stats = get_stats(update.effective_user.id)
 
     text = f"""
 📊 **Статистика за неделю**
@@ -126,88 +111,78 @@ async def show_stats(message: Message):
         text += f"  • {sleep} ч\n"
 
     if stats['reasons']:
-        from collections import Counter
         text += "\n🔍 **Частые причины:**\n"
         for reason, count in Counter(stats['reasons']).most_common(3):
             text += f"  • {reason} ({count} раз)\n"
     else:
         text += "\n💡 *Чтобы видеть причины, указывайте их после истерик*"
 
-    await message.answer(text, parse_mode="Markdown")
+    await update.message.reply_text(text, parse_mode="Markdown")
 
-
-@router.message(Command("отчет"))
-async def export_report(message: Message):
-    events = get_events_for_report(message.from_user.id, 30)
+async def export_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    events = get_events_for_report(update.effective_user.id, 30)
     if not events:
-        await message.answer("❌ Нет данных за последние 30 дней")
+        await update.message.reply_text("❌ Нет данных за последние 30 дней")
         return
 
-    report_text = format_report(message.from_user.id, events)
+    report_text = format_report(update.effective_user.id, events)
     report_file = create_report_file(report_text)
-    await message.answer_document(report_file, caption="📄 Отчет для врача")
-
+    await update.message.reply_document(report_file, caption="📄 Отчет для врача")
 
 # === СОВЕТЫ ===
-@router.message(Command("совет"))
-async def random_tip(message: Message):
+async def random_tip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tip = get_random_tip(TIPS)
-    await message.answer(tip, parse_mode="Markdown")
+    await update.message.reply_text(tip, parse_mode="Markdown")
 
+# === НАПОМИНАНИЯ (ConversationHandler) ===
+async def remind_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("⏰ Введите время в формате ЧЧ:ММ (например, `20:00`)", parse_mode="Markdown")
+    return WAITING_TIME
 
-# === НАПОМИНАНИЯ ===
-@router.message(Command("напомнить"))
-async def set_reminder(message: Message, state: FSMContext):
-    await message.answer("⏰ Введите время в формате ЧЧ:ММ (например, `20:00`)", parse_mode="Markdown")
-    await state.set_state(ReminderState.waiting_for_time)
-
-
-@router.message(ReminderState.waiting_for_time)
-async def reminder_time(message: Message, state: FSMContext):
-    time_match = re.match(r'^(\d{1,2}):(\d{2})$', message.text)
+async def remind_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    time_match = re.match(r'^(\d{1,2}):(\d{2})$', update.message.text)
     if not time_match:
-        await message.answer("❌ Неправильный формат. Используйте ЧЧ:ММ")
-        return
+        await update.message.reply_text("❌ Неправильный формат. Используйте ЧЧ:ММ")
+        return WAITING_TIME
 
     hour, minute = int(time_match.group(1)), int(time_match.group(2))
-    await state.update_data(hour=hour, minute=minute)
-    await message.answer("✏️ Теперь напишите текст напоминания")
-    await state.set_state(ReminderState.waiting_for_message)
+    context.user_data['reminder_hour'] = hour
+    context.user_data['reminder_minute'] = minute
+    await update.message.reply_text("✏️ Теперь напишите текст напоминания")
+    return WAITING_MESSAGE
 
-
-@router.message(ReminderState.waiting_for_message)
-async def reminder_message(message: Message, state: FSMContext, bot: Bot):
-    data = await state.get_data()
-    hour, minute = data['hour'], data['minute']
+async def remind_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    hour = context.user_data.get('reminder_hour')
+    minute = context.user_data.get('reminder_minute')
+    text = update.message.text
 
     now = datetime.now()
     reminder_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
     if reminder_time < now:
         reminder_time += timedelta(days=1)
 
-    reminder_id = add_reminder(message.from_user.id, reminder_time, message.text)
-    schedule_reminder(bot, message.from_user.id, reminder_time, message.text, reminder_id)
+    reminder_id = add_reminder(update.effective_user.id, reminder_time, text)
+    # schedule_reminder(update, context, reminder_time, text, reminder_id)
 
-    await message.answer(f"✅ Напоминание установлено на {hour:02d}:{minute:02d}\nТекст: {message.text}")
-    await state.clear()
+    await update.message.reply_text(f"✅ Напоминание установлено на {hour:02d}:{minute:02d}\nТекст: {text}")
+    return ConversationHandler.END
 
+async def remind_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("❌ Напоминание отменено")
+    return ConversationHandler.END
 
 # === ОБРАБОТКА ПРИЧИН ИСТЕРИК ===
-@router.callback_query(F.data == "add_reason")
-async def ask_reason(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer("✏️ Напишите причину истерики")
-    await state.set_state(ReasonState.waiting_for_reason)
-    await callback.answer()
+async def ask_reason_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text("✏️ Напишите причину истерики")
+    return WAITING_REASON
 
+async def save_reason(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    update_last_meltdown_reason(update.effective_user.id, update.message.text)
+    await update.message.reply_text(f"✅ Сохранил причину: \"{update.message.text}\"")
+    return ConversationHandler.END
 
-@router.message(ReasonState.waiting_for_reason)
-async def save_reason(message: Message, state: FSMContext):
-    update_last_meltdown_reason(message.from_user.id, message.text)
-    await message.answer(f"✅ Сохранил причину: \"{message.text}\"")
-    await state.clear()
-
-
-# === ПОМОЩЬ ===
-@router.message(Command("help"))
-async def cmd_help(message: Message):
-    await cmd_start(message)
+async def reason_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("❌ Добавление причины отменено")
+    return ConversationHandler.END
