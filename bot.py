@@ -2,7 +2,7 @@ import asyncio
 from telegram.ext import Application, CommandHandler
 from config import BOT_TOKEN
 from database import init_db
-from handlers import router
+from on_handlers import router
 from scheduler_tasks import load_active_reminders
 from handlers.admin import users_list
 
