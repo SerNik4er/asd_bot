@@ -1,18 +1,23 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 
 def get_meltdown_keyboard():
-    """Клавиатура после записи истерики"""
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardMarkup(text="👍 Указать причину", calback_data="add_reason")]
-    ])
+    """Клавиатура для выбора причины истерики"""
+    keyboard = [
+        [InlineKeyboardButton("➕ Добавить причину", callback_data="add_reason")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
 
 def get_main_keyboard():
-    """Основная клавиатура для быстрых команд"""
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="/сон"), KeyboardButton(text="/еда")],
-            [KeyboardButton(text="/истерика"), KeyboardButton(text="/настроение")],
-            [KeyboardButton(text="/статистика"), KeyboardButton(text="/совет")]
-        ],
-        resize_keyboard=True
-    )
+    """Главная клавиатура с кнопками-командами"""
+    buttons = [
+        [KeyboardButton("/sleep"), KeyboardButton("/food")],
+        [KeyboardButton("/meltdown"), KeyboardButton("/mood")],
+        [KeyboardButton("/stats"), KeyboardButton("/tip")],
+        [KeyboardButton("/remind"), KeyboardButton("/report")]
+    ]
+    return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+
+def get_cancel_keyboard():
+    """Клавиатура с кнопкой отмены"""
+    keyboard = [[KeyboardButton("/cancel")]]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
