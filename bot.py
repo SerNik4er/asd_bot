@@ -118,7 +118,25 @@ def main():
         fallbacks=[CommandHandler("cancel", remind_cancel)],
     )
     app.add_handler(remind_conv_handler)
+    
+    # Диалог отчёта по лекарству
+    from handlers.medications import (
+        report_medication_start, report_medication_selected, cancel_report,
+        REPORT_SELECT
+    )
 
+    report_conv = ConversationHandler(
+        entry_points=[
+            CommandHandler("med_report", report_medication_start),
+            MessageHandler(filters.Regex("^📊 Отчёт по лекарствам$"), report_medication_start)
+        ],
+        states={
+            REPORT_SELECT: [CallbackQueryHandler(report_medication_selected, pattern="^report_")],
+        },
+        fallbacks=[CommandHandler("cancel", cancel_report)],
+    )
+    app.add_handler(report_conv)
+    
     # Диалог для причин истерик
     reason_conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(ask_reason_callback, pattern="add_reason")],
