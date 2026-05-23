@@ -105,7 +105,7 @@ async def track_meltdown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     add_event(update.effective_user.id, "meltdown", "", severity)
     await update.message.reply_text(
-        f"✅ Записал истерику (сила: {severity}/5). Хотите указать причину?",
+        f"✅ Записал срыв (сила: {severity}/5). Хотите указать причину?",
         reply_markup=get_meltdown_keyboard()
     )
 
@@ -154,7 +154,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for reason, count in Counter(stats['reasons']).most_common(3):
             text += f"  • {reason} ({count} раз)\n"
     else:
-        text += "\n💡 *Чтобы видеть причины, указывайте их после истерик*"
+        text += "\n💡 *Чтобы видеть причины, указывайте их после срывов*"
 
     await update.message.reply_text(text, parse_mode="Markdown")
 
@@ -210,11 +210,11 @@ async def remind_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Напоминание отменено")
     return ConversationHandler.END
 
-# === ОБРАБОТКА ПРИЧИН ИСТЕРИК ===
+# === ОБРАБОТКА ПРИЧИН СРЫВОВ ===
 async def ask_reason_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.message.reply_text("✏️ Напишите причину истерики")
+    await query.message.reply_text("✏️ Напишите причину срыва")
     return WAITING_REASON
 
 async def save_reason(update: Update, context: ContextTypes.DEFAULT_TYPE):
