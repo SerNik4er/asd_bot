@@ -113,14 +113,15 @@ def get_active_medications(user_id: int):
                      ORDER BY start_date DESC''', (user_id,))
         return c.fetchall()
 
-def log_medication_take(medication_id: int, reaction: str = None, side_effects: str = None):
+def log_medication_take(medication_id: int, reaction: str, side_effects: str, improvements: str):
     """Запись о приёме лекарства"""
     with get_connection() as conn:
         c = conn.cursor()
         now = datetime.now().isoformat()
-        c.execute('''INSERT INTO medication_logs (medication_id, taken_date, reaction, side_effects)
-                     VALUES (?, ?, ?, ?)''',
-                  (medication_id, now, reaction, side_effects))
+        c.execute('''INSERT INTO medication_logs 
+                     (medication_id, taken_date, reaction, side_effects, improvements)
+                     VALUES (?, ?, ?, ?, ?)''',
+                  (medication_id, now, reaction, side_effects, improvements))
         conn.commit()
         
 def get_stats(user_id: int, days: int = 7):
