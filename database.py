@@ -199,3 +199,22 @@ def update_last_meltdown_reason(user_id: int, reason: str):
                      ORDER BY date DESC LIMIT 1''',
                   (reason, user_id))
         conn.commit()
+
+def get_medication_logs(medication_id: int):
+    """Получить все записи о приёме лекарства"""
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute('''SELECT taken_date, reaction, side_effects, improvements
+                     FROM medication_logs 
+                     WHERE medication_id = ?
+                     ORDER BY taken_date DESC''', (medication_id,))
+        return c.fetchall()
+
+def get_medication_by_id(medication_id: int, user_id: int):
+    """Получить информацию о лекарстве по ID"""
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute('''SELECT id, name, dosage, start_date, end_date
+                     FROM medications 
+                     WHERE id = ? AND user_id = ?''', (medication_id, user_id))
+        return c.fetchone()
