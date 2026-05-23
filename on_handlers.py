@@ -57,7 +57,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 *Что означают кнопки?*
 • 🌙 Сон — записать сколько спал
 • 🍎 Еда — записать что ел
-• 😭 Истерика — записать силу и причину
+• 😥 Срыв — записать силу и причину
 • 😊 Настроение — оценить от 1 до 5
 • 📊 Статистика — отчёт за неделю
 • 💡 Совет — полезный совет дня
@@ -141,7 +141,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = f"""
 📊 **Статистика за неделю**
 
-😭 **Истерики:** {stats['meltdown_count']} раз(а)
+😭 **Срывы:** {stats['meltdown_count']} раз(а)
 📈 **Средняя сила:** {stats['avg_severity']}/5
 
 🌙 **Последние записи сна:**
