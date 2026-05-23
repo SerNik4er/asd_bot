@@ -12,20 +12,6 @@ from handlers.medications import (
     take_medication_improvements, cancel_take,
     NAME, DOSAGE, START_DATE, TAKE_SELECT, TAKE_REACTION, TAKE_SIDE_EFFECTS, TAKE_IMPROVEMENTS
 )
-take_med_conv = ConversationHandler(
-    entry_points=[
-        CommandHandler("med_take", take_medication_start),
-        MessageHandler(filters.Regex("^💊 Отметить приём$"), take_medication_start)
-    ],
-    states={
-        TAKE_SELECT: [CallbackQueryHandler(take_medication_selected, pattern="^take_")],
-        TAKE_REACTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, take_medication_reaction)],
-        TAKE_SIDE_EFFECTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, take_medication_side_effects)],
-        TAKE_IMPROVEMENTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, take_medication_improvements)],
-    },
-    fallbacks=[CommandHandler("cancel", cancel_take)],
-)
-app.add_handler(take_med_conv)
 from config import BOT_TOKEN
 from database import init_db
 from scheduler_tasks import load_active_reminders
@@ -157,6 +143,24 @@ def main():
         fallbacks=[CommandHandler("cancel", cancel)],
     )
     app.add_handler(med_conv)
+
+     # ========== ДИАЛОГ ДЛЯ ОТМЕТКИ ПРИЁМА ==========
+    # Импорты состояний и функций (могут быть вверху файла)
+    take_med_conv = ConversationHandler(
+        entry_points=[
+            CommandHandler("med_take", take_medication_start),
+            MessageHandler(filters.Regex("^💊 Отметить приём$"), take_medication_start)
+        ],
+        states={
+            TAKE_SELECT: [CallbackQueryHandler(take_medication_selected, pattern="^take_")],
+            TAKE_REACTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, take_medication_reaction)],
+            TAKE_SIDE_EFFECTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, take_medication_side_effects)],
+            TAKE_IMPROVEMENTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, take_medication_improvements)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel_take)],
+    )
+    app.add_handler(take_med_conv)
+
 
     # ========== 2. ПОТОМ ВСЕ КОМАНДЫ (CommandHandler) ==========
     
