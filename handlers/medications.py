@@ -1,10 +1,11 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
-from database import add_medication, get_active_medications, log_medication_take
+from database import add_medication, get_active_medications, log_medication_take, get_medication_by_id, get_medication_logs
 
 # Состояния для диалога добавления лекарства
 NAME, DOSAGE, START_DATE = range(3)
 TAKE_SELECT, TAKE_REACTION, TAKE_SIDE_EFFECTS, TAKE_IMPROVEMENTS = range(4, 8)
+REPORT_SELECT = 8
 
 async def medications_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Главное меню лекарств (вызывается по кнопке)"""
@@ -192,4 +193,91 @@ async def cancel_take(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from keyboards import get_main_keyboard
     await update.message.reply_text("❌ Отметка приёма отменена.", reply_markup=get_main_keyboard())
     context.user_data.clear()
+    return ConversationHandler.END
+
+async def report_medication_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Начало диалога отчёта: показать список активных лекарств"""
+    user_id = update.effective_user.id
+    meds = get_active_medications(user_id)
+    
+    if not meds:
+        await update.message.reply_text("💊 У вас пока нет активных лекарств.")
+        return ConversationHandler.END
+    
+    # Отправляем список лекарств с кнопками выбора
+    keyboard = []
+    for med in meds:
+        med_id, name, dosage, start_date = med
+        keyboard.append([InlineKeyboardButton(f"{name} ({dosage})", callback_data=f"report_{med_id}")])
+    keyboard.append([InlineKeyboardButton("❌ Отмена", callback_data="cancel_report")])
+    
+    await update.message.reply_text(
+        "📊 Выберите лекарство для формирования отчёта:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return REPORT_SELECT
+
+async def report_medication_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Пользователь выбрал лекарство — формируем отчёт"""
+    query = update.callback_query
+    await query.answer()
+    
+    med_id = int(query.data.split("_")[1])
+    user_id = query.from_user.id
+    
+    # Получаем информацию о лекарстве
+    med = get_medication_by_id(med_id, user_id)
+    if not med:
+        await query.message.reply_text("❌ Лекарство не найдено.")
+        return ConversationHandler.END
+    
+    med_id, name, dosage, start_date, end_date = med
+    
+    # Получаем все записи о приёме
+    logs = get_medication_logs(med_id)
+    
+    if not logs:
+        await query.message.reply_text(
+            f"📊 *Отчёт по лекарству {name} ({dosage})*\n\n"
+            f"📅 Дата начала: {start_date}\n"
+            f"📭 Записей о приёме пока нет.",
+            parse_mode="Markdown"
+        )
+        return ConversationHandler.END
+    
+    # Формируем отчёт
+    report = f"📊 *Отчёт по лекарству {name} ({dosage})*\n\n"
+    report += f"📅 Дата начала: {start_date}\n"
+    if end_date:
+        report += f"📅 Дата отмены: {end_date}\n"
+    report += f"📊 Всего приёмов: {len(logs)}\n\n"
+    report += "📋 *История приёмов:*\n"
+    
+    for i, (taken_date, reaction, side_effects, improvements) in enumerate(logs, 1):
+        # Форматируем дату
+        date_str = taken_date[:16].replace("T", " ") if taken_date else "дата неизвестна"
+        report += f"\n{i}. 🕒 {date_str}\n"
+        report += f"   📝 Реакция: {reaction}\n"
+        report += f"   ⚠️ Побочки: {side_effects}\n"
+        report += f"   📈 Улучшения: {improvements}\n"
+    
+    # Если отчёт слишком длинный — отправляем файлом
+    if len(report) > 4000:
+        from utils import create_report_file
+        file_obj = create_report_file(report)
+        await query.message.reply_document(
+            document=file_obj,
+            caption=f"📊 Отчёт по лекарству {name}",
+            filename=f"report_{name}.txt"
+        )
+    else:
+        await query.message.reply_text(report, parse_mode="Markdown")
+    
+    return ConversationHandler.END
+
+async def cancel_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Отмена формирования отчёта"""
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text("❌ Формирование отчёта отменено.")
     return ConversationHandler.END
