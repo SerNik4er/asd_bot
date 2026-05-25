@@ -109,7 +109,34 @@ async def force_init_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from database import init_db
     init_db()
     await update.message.reply_text("✅ База данных инициализирована (все таблицы созданы)")
+
+async def check_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from database import get_connection
+    import os
     
+    # Проверяем путь к БД
+    from config import DATABASE_NAME
+    await update.message.reply_text(f"📁 Путь к БД: {DATABASE_NAME}")
+    
+    # Проверяем, существует ли файл
+    if os.path.exists(DATABASE_NAME):
+        await update.message.reply_text(f"✅ Файл БД существует, размер: {os.path.getsize(DATABASE_NAME)} байт")
+    else:
+        await update.message.reply_text("❌ Файл БД НЕ существует")
+    
+    # Проверяем таблицы
+    try:
+        with get_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = c.fetchall()
+            table_list = ", ".join([t[0] for t in tables])
+            await update.message.reply_text(f"📋 Таблицы в БД: {table_list}")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка: {e}")
+
+# В main():
+app.add_handler(CommandHandler("checkdb", check_db))
 
 def main():
     # Создаём приложение
