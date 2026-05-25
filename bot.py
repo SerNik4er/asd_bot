@@ -10,7 +10,7 @@ from handlers.medications import (
     list_medications, take_medication_start, take_medication_selected,
     take_medication_reaction, take_medication_side_effects,
     take_medication_improvements, cancel_take,
-    NAME, DOSAGE, START_DATE, TAKE_SELECT, TAKE_REACTION, TAKE_SIDE_EFFECTS, TAKE_IMPROVEMENTS
+    NAME, DOSAGE, START_DATE, TAKE_SELECT, TAKE_REACTION, TAKE_SIDE_EFFECTS, TAKE_IMPROVEMENTS, REPORT_SELECT
 )
 from config import BOT_TOKEN
 from database import init_db
@@ -79,6 +79,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "📋 Мои лекарства":
         from handlers.medications import list_medications
         await list_medications(update, context)
+    elif text == "📊 Отчёт по лекарствам":
+        from handlers.medications import report_medication_start
+        await report_medication_start(update, context)
     elif text == "🔙 Назад в главное меню":
         await update.message.reply_text(
             "Главное меню:",
