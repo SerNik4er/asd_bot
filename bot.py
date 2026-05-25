@@ -136,12 +136,14 @@ async def check_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Ошибка: {e}")
 
 # В main():
-app.add_handler(CommandHandler("checkdb", check_db))
-
 def main():
     # Создаём приложение
     app = Application.builder().token(BOT_TOKEN).build()
+
+    # Диагностические команды
     app.add_handler(CommandHandler("initdb", force_init_db))
+    app.add_handler(CommandHandler("checkdb", check_db))
+
     # ========== 1. СНАЧАЛА ВСЕ ДИАЛОГИ (ConversationHandler) ==========
     
     # Диалог для напоминаний
@@ -198,8 +200,7 @@ def main():
     )
     app.add_handler(med_conv)
 
-     # ========== ДИАЛОГ ДЛЯ ОТМЕТКИ ПРИЁМА ==========
-    # Импорты состояний и функций (могут быть вверху файла)
+    # Диалог для отметки приёма
     take_med_conv = ConversationHandler(
         entry_points=[
             CommandHandler("med_take", take_medication_start),
@@ -214,7 +215,6 @@ def main():
         fallbacks=[CommandHandler("cancel", cancel_take)],
     )
     app.add_handler(take_med_conv)
-
 
     # ========== 2. ПОТОМ ВСЕ КОМАНДЫ (CommandHandler) ==========
     
