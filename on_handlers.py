@@ -204,6 +204,8 @@ async def random_tip(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # === НАПОМИНАНИЯ (ConversationHandler) ===
 async def remind_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("DEBUG: remind_start ВЫЗВАН")
+    context.user_data['in_reminder_dialog'] = True
     await update.message.reply_text("⏰ Введите время в формате ЧЧ:ММ (например, `20:00`)", parse_mode="Markdown")
     return WAITING_TIME
 
@@ -248,9 +250,12 @@ async def remind_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await update.message.reply_text(f"✅ Напоминание установлено на {hour:02d}:{minute:02d}\nТекст: {text}")
+    context.user_data.pop('in_reminder_dialog', None)
     return ConversationHandler.END
 
 async def remind_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("DEBUG: remind_cancel ВЫЗВАН")
+    context.user_data.pop('in_reminder_dialog', None)
     await update.message.reply_text("❌ Напоминание отменено")
     return ConversationHandler.END
 
