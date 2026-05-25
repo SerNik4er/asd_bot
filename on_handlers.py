@@ -13,6 +13,18 @@ from config import TIPS
 # Состояния для ConversationHandler
 WAITING_TIME, WAITING_MESSAGE, WAITING_REASON = range(3)
 
+
+async def send_reminder_callback(context: ContextTypes.DEFAULT_TYPE):
+    """Отправляет напоминание пользователю"""
+    job_data = context.job.data
+    chat_id = job_data['chat_id']
+    message = job_data['message']
+    
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=f"🔔 *Напоминание!*\n\n{message}",
+        parse_mode="Markdown"
+    )
 # === БАЗОВЫЕ КОМАНДЫ ===
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -217,8 +229,21 @@ async def remind_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if reminder_time < now:
         reminder_time += timedelta(days=1)
 
+    # Сохраняем в БД
     reminder_id = add_reminder(update.effective_user.id, reminder_time, text)
-    # schedule_reminder(update, context, reminder_time, text, reminder_id)
+
+    # Планируем задачу в JobQueue
+    seconds_until = (reminder_time - now).total_seconds()
+    
+    context.job_queue.run_once(
+        callback=send_reminder_callback,
+        when=seconds_until,
+        data={
+            'chat_id': update.effective_chat.id,
+            'message': text
+        },
+        name=str(reminder_id)
+    )
 
     await update.message.reply_text(f"✅ Напоминание установлено на {hour:02d}:{minute:02d}\nТекст: {text}")
     return ConversationHandler.END
