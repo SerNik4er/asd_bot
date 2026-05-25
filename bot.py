@@ -105,10 +105,16 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop('awaiting', None)
 
 
+async def force_init_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from database import init_db
+    init_db()
+    await update.message.reply_text("✅ База данных инициализирована (все таблицы созданы)")
+    
+
 def main():
     # Создаём приложение
     app = Application.builder().token(BOT_TOKEN).build()
-
+    app.add_handler(CommandHandler("initdb", force_init_db))
     # ========== 1. СНАЧАЛА ВСЕ ДИАЛОГИ (ConversationHandler) ==========
     
     # Диалог для напоминаний
