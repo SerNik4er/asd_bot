@@ -189,9 +189,16 @@ async def take_medication_improvements(update: Update, context: ContextTypes.DEF
     return ConversationHandler.END
 
 async def cancel_take(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отмена отметки приёма"""
+    """Отмена отметки приёма (работает и для кнопки, и для команды)"""
     from keyboards import get_main_keyboard
-    await update.message.reply_text("❌ Отметка приёма отменена.", reply_markup=get_main_keyboard())
+    
+    if update.callback_query:
+        query = update.callback_query
+        await query.answer()
+        await query.message.reply_text("❌ Отметка приёма отменена.", reply_markup=get_main_keyboard())
+    else:
+        await update.message.reply_text("❌ Отметка приёма отменена.", reply_markup=get_main_keyboard())
+    
     context.user_data.clear()
     return ConversationHandler.END
 
@@ -276,8 +283,13 @@ async def report_medication_selected(update: Update, context: ContextTypes.DEFAU
     return ConversationHandler.END
 
 async def cancel_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отмена формирования отчёта"""
-    query = update.callback_query
-    await query.answer()
-    await query.message.reply_text("❌ Формирование отчёта отменено.")
+    """Отмена формирования отчёта (работает и для кнопки, и для команды)"""
+    if update.callback_query:
+        query = update.callback_query
+        await query.answer()
+        await query.message.reply_text("❌ Формирование отчёта отменено.")
+    else:
+        await update.message.reply_text("❌ Формирование отчёта отменено.")
+    
+    context.user_data.clear()
     return ConversationHandler.END
