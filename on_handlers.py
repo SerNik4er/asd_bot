@@ -208,6 +208,8 @@ async def remind_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return WAITING_TIME
 
 async def remind_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("DEBUG: remind_time ВЫЗВАНА")
+    print(f"DEBUG: Текст сообщения: '{update.message.text}'")
     time_match = re.match(r'^(\d{1,2}):(\d{2})$', update.message.text)
     if not time_match:
         await update.message.reply_text("❌ Неправильный формат. Используйте ЧЧ:ММ")
