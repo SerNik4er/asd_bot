@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "autism_helper.db")
+DATA_DIR = '/app/data'
+os.makedirs(DATA_DIR, exist_ok=True)  # создаём папку, если её нет
+DATABASE_NAME = os.path.join(DATA_DIR, 'autism_helper.db')
 
 ADMIN_IDS = [1249686924, ]
 # Список полезных советов (для рассылки или команды /tip)
