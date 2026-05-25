@@ -64,8 +64,6 @@ def init_db():
 
         conn.commit()
 
-        conn.commit()
-
 def add_user(user_id: int, username: str = None, first_name: str = None):
     """Добавление нового пользователя (если ещё не существует)"""
     with get_connection() as conn:
