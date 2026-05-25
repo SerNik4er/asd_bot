@@ -215,7 +215,10 @@ def main():
             TAKE_SIDE_EFFECTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, take_medication_side_effects)],
             TAKE_IMPROVEMENTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, take_medication_improvements)],
         },
-        fallbacks=[CommandHandler("cancel", cancel_take)],
+        fallbacks=[
+            CommandHandler("cancel", cancel_take),
+            CallbackQueryHandler(cancel_take, pattern="^cancel_take$"),  # ← ДОБАВИТЬ
+        ],
     )
     app.add_handler(take_med_conv)
 
