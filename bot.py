@@ -171,7 +171,10 @@ def main():
         states={
             REPORT_SELECT: [CallbackQueryHandler(report_medication_selected, pattern="^report_")],
         },
-        fallbacks=[CommandHandler("cancel", cancel_report)],
+        fallbacks=[
+            CommandHandler("cancel", cancel_report),
+            CallbackQueryHandler(cancel_report, pattern="^cancel_report$"),  # ← ДОБАВИТЬ
+        ],
     )
     app.add_handler(report_conv)
     
