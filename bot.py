@@ -49,8 +49,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик кнопок с русским текстом"""
     text = update.message.text
     print(f"DEBUG: handle_text получил текст: '{text}'")
-    
-    if text == "🌙 Сон":
+
+    if context.user_data.get('in_reminder_dialog'):
+        print("DEBUG: В диалоге напоминания, пропускаем")
+        return
+    elif text == "🌙 Сон":
         await update.message.reply_text("Введите время сна в часах, например: 7.5")
         context.user_data['awaiting'] = 'sleep'
     elif text == "🍎 Еда":
