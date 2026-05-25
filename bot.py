@@ -82,6 +82,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "📊 Отчёт по лекарствам":
         from handlers.medications import report_medication_start
         await report_medication_start(update, context)
+    elif text == "❓ Помощь":
+        await cmd_help(update, context)
     elif text == "🔙 Назад в главное меню":
         await update.message.reply_text(
             "Главное меню:",
