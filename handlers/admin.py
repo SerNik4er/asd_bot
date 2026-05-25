@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
+from config import ADMIN_IDS, DATABASE_NAME
 import sqlite3
-from config import ADMIN_IDS
 
 async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Проверка, что команду вызвал администратор
@@ -10,8 +10,8 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        # Подключаемся к базе данных
-        conn = sqlite3.connect('autism_helper.db')
+        # Подключаемся к базе данных через путь из config
+        conn = sqlite3.connect(DATABASE_NAME)
         cursor = conn.cursor()
 
         # Получаем данные о пользователях
