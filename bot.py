@@ -90,13 +90,19 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await track_mood(update, context)
         context.user_data.pop('awaiting', None)
 
-
 async def force_init_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMIN_IDS:
+        await update.message.reply_text("⛔ Доступ запрещён")
+        return
     from database import init_db
     init_db()
     await update.message.reply_text("✅ База данных инициализирована (все таблицы созданы)")
 
+
 async def check_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMIN_IDS:
+        await update.message.reply_text("⛔ Доступ запрещён")
+        return
     from database import get_connection
     import os
     from config import DATABASE_NAME
