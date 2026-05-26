@@ -165,9 +165,9 @@ def main():
 app.add_handler(remind_conv_handler)
     
     # Диалог отчёта по лекарству
-    from handlers.medications import (
-        report_medication_start, report_medication_selected, cancel_report,
-        REPORT_SELECT
+from handlers.medications import (
+    report_medication_start, report_medication_selected, cancel_report,
+    REPORT_SELECT
     )
 
     report_conv = ConversationHandler(
