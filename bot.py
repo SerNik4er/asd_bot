@@ -135,6 +135,15 @@ async def check_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ Ошибка: {e}")
 
+async def test_reminders(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from database import get_due_reminders
+    due = get_due_reminders()
+    await update.message.reply_text(f"Найдено просроченных напоминаний: {len(due)}")
+    for r in due:
+        await update.message.reply_text(f"ID: {r[0]}, User: {r[1]}, Msg: {r[2]}")
+
+# В main() добавить:
+app.add_handler(CommandHandler("testrem", test_reminders))
 
 def main():
     # Создаём приложение
@@ -143,7 +152,7 @@ def main():
     # Диагностические команды
     app.add_handler(CommandHandler("initdb", force_init_db))
     app.add_handler(CommandHandler("checkdb", check_db))
-
+    app.add_handler(CommandHandler("testrem", test_reminders))
     # ========== 1. ДИАЛОГИ (ConversationHandler) ==========
     
     # Диалог для напоминаний
