@@ -104,15 +104,15 @@ def get_active_medications(user_id: int):
                      ORDER BY start_date DESC''', (user_id,))
         return c.fetchall()
 
-def log_medication_take(medication_id: int, reaction: str, side_effects: str, improvements: str):
-    """Запись о приёме лекарства"""
+def log_medication_take(medication_id: int, take_time: str, reaction: str, side_effects: str, improvements: str):
+    """Запись о приёме лекарства с указанием времени"""
     with get_connection() as conn:
         c = conn.cursor()
         now = datetime.now().isoformat()
         c.execute('''INSERT INTO medication_logs 
-                     (medication_id, taken_date, reaction, side_effects, improvements)
-                     VALUES (?, ?, ?, ?, ?)''',
-                  (medication_id, now, reaction, side_effects, improvements))
+                     (medication_id, taken_date, take_time, reaction, side_effects, improvements)
+                     VALUES (?, ?, ?, ?, ?, ?)''',
+                  (medication_id, now, take_time, reaction, side_effects, improvements))
         conn.commit()
 
 def get_medication_by_id(medication_id: int, user_id: int):
@@ -128,7 +128,7 @@ def get_medication_logs(medication_id: int):
     """Получить все записи о приёме лекарства"""
     with get_connection() as conn:
         c = conn.cursor()
-        c.execute('''SELECT taken_date, reaction, side_effects, improvements
+        c.execute('''SELECT taken_date, take_time, reaction, side_effects, improvements
                      FROM medication_logs 
                      WHERE medication_id = ?
                      ORDER BY taken_date DESC''', (medication_id,))
@@ -140,7 +140,7 @@ def get_stats(user_id: int, days: int = 7):
         c = conn.cursor()
         since_date = (datetime.now() - timedelta(days=days)).isoformat()
 
-        # Статистика по поведению (было "meltdown")
+        # Статистика по поведению
         c.execute('''SELECT COUNT(*), AVG(severity)
                 FROM events
                 WHERE user_id=? AND event_type='behavior' AND date>?''',
