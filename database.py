@@ -20,16 +20,17 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )''')
 
-        # Таблица событий
-        c.execute('''CREATE TABLE IF NOT EXISTS events
-                (id INTEGER PRIMARY KEY AUTOINCREMENT,
+        # Таблица событий (с полем behavior_type)
+        c.execute('''CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
                 date TEXT,
                 event_type TEXT,
+                behavior_type TEXT,
                 value TEXT,
                 severity INTEGER,
-                note TEXT)''')
-
+                note TEXT
+        )''')
 
         # Таблица лекарств
         c.execute('''CREATE TABLE IF NOT EXISTS medications (
@@ -42,11 +43,12 @@ def init_db():
             status TEXT DEFAULT 'active'
         )''')
 
-        # Таблица приёмов лекарств
+        # Таблица приёмов лекарств (с полем take_time)
         c.execute('''CREATE TABLE IF NOT EXISTS medication_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             medication_id INTEGER,
             taken_date TEXT,
+            take_time TEXT,
             reaction TEXT,
             side_effects TEXT,
             improvements TEXT,
@@ -63,7 +65,9 @@ def add_user(user_id: int, username: str = None, first_name: str = None):
                      VALUES (?, ?, ?)''',
                   (user_id, username, first_name))
         conn.commit()
+
 def add_event(user_id: int, event_type: str, behavior_type: str = "", value: str = "", severity: int = None, note: str = ""):
+    """Добавление события (сон, еда, поведение, настроение)"""
     with get_connection() as conn:
         c = conn.cursor()
         now = datetime.now().isoformat()
@@ -79,17 +83,6 @@ def get_all_users():
         c = conn.cursor()
         c.execute('SELECT user_id, username, first_name, created_at FROM users ORDER BY created_at DESC')
         return c.fetchall()
-
-def add_event(user_id: int, event_type: str, value: str = "", severity: int = None, note: str = ""):
-    """Добавление события"""
-    with get_connection() as conn:
-        c = conn.cursor()
-        now = datetime.now().isoformat()
-        c.execute('''INSERT INTO events
-                (user_id, date, event_type, value, severity, note)
-                VALUES (?, ?, ?, ?, ?, ?)''',
-                (user_id, now, event_type, value, severity, note))
-        conn.commit()
 
 def add_medication(user_id: int, name: str, dosage: str, start_date: str):
     """Добавление нового лекарства"""
@@ -147,26 +140,29 @@ def get_stats(user_id: int, days: int = 7):
         c = conn.cursor()
         since_date = (datetime.now() - timedelta(days=days)).isoformat()
 
+        # Статистика по поведению (было "meltdown")
         c.execute('''SELECT COUNT(*), AVG(severity)
                 FROM events
-                WHERE user_id=? AND event_type='meltdown' AND date>?''',
+                WHERE user_id=? AND event_type='behavior' AND date>?''',
                   (user_id, since_date))
-        meltdown_count, avg_severity = c.fetchone()
+        behavior_count, avg_severity = c.fetchone()
 
+        # Статистика по сну
         c.execute('''SELECT value FROM events 
                      WHERE user_id=? AND event_type='sleep' AND date>? 
                      ORDER BY date DESC LIMIT 5''',
                   (user_id, since_date))
         sleep_records = c.fetchall()
 
+        # Причины поведения
         c.execute('''SELECT note FROM events 
-                     WHERE user_id=? AND event_type='meltdown' 
+                     WHERE user_id=? AND event_type='behavior' 
                      AND note!='' AND date>?''',
                   (user_id, since_date))
         reasons = c.fetchall()
 
         return {
-            'meltdown_count': meltdown_count or 0,
+            'behavior_count': behavior_count or 0,
             'avg_severity': round(avg_severity, 1) if avg_severity else 0,
             'sleep_records': [r[0] for r in sleep_records],
             'reasons': [r[0] for r in reasons]
@@ -177,46 +173,20 @@ def get_events_for_report(user_id: int, days: int = 30):
     with get_connection() as conn:
         c = conn.cursor()
         since_date = (datetime.now() - timedelta(days=days)).isoformat()
-        c.execute('''SELECT date, event_type, value, severity, note 
+        c.execute('''SELECT date, event_type, behavior_type, value, severity, note 
                      FROM events 
                      WHERE user_id=? AND date>? 
                      ORDER BY date DESC''',
                   (user_id, since_date))
         return c.fetchall()
 
-def add_reminder(user_id: int, reminder_time, message: str):
-    """Добавление напоминания в БД"""
-    with get_connection() as conn:
-        c = conn.cursor()
-        c.execute('''INSERT INTO reminders (user_id, reminder_time, message, is_active) 
-                     VALUES (?, ?, ?, 1)''',
-                  (user_id, reminder_time.isoformat(), message))
-        conn.commit()
-        return c.lastrowid
-
-def get_due_reminders():
-    """Получить напоминания, которые пора отправить и ещё не отправлены"""
-    with get_connection() as conn:
-        c = conn.cursor()
-        now = datetime.now().isoformat()
-        c.execute('''SELECT id, user_id, message FROM reminders 
-                     WHERE reminder_time <= ? AND is_active = 1''', (now,))
-        return c.fetchall()
-
-def mark_reminder_sent(reminder_id: int):
-    """Отметить напоминание как отправленное"""
-    with get_connection() as conn:
-        c = conn.cursor()
-        c.execute('UPDATE reminders SET is_active = 0 WHERE id = ?', (reminder_id,))
-        conn.commit()
-
 def update_last_meltdown_reason(user_id: int, reason: str):
-    """Обновление причины последней истерики"""
+    """Обновление причины последнего поведения (для совместимости)"""
     with get_connection() as conn:
         c = conn.cursor()
         c.execute('''UPDATE events 
                      SET note=? 
-                     WHERE user_id=? AND event_type='meltdown' 
+                     WHERE user_id=? AND event_type='behavior' 
                      ORDER BY date DESC LIMIT 1''',
                   (reason, user_id))
         conn.commit()
