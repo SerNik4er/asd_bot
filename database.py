@@ -30,13 +30,6 @@ def init_db():
                 severity INTEGER,
                 note TEXT)''')
 
-        # Таблица напоминаний
-        c.execute('''CREATE TABLE IF NOT EXISTS reminders
-                (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                reminder_time TEXT,
-                message TEXT,
-                is_active INTEGER DEFAULT 1)''')
 
         # Таблица лекарств
         c.execute('''CREATE TABLE IF NOT EXISTS medications (
