@@ -4,73 +4,13 @@ from collections import Counter
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
 
-from database import add_event, get_stats, get_events_for_report, add_reminder, update_last_meltdown_reason, add_user, get_due_reminders, mark_reminder_sent
+from database import add_event, get_stats, get_events_for_report, update_last_meltdown_reason, add_user
 from keyboards import get_meltdown_keyboard, get_main_keyboard
 from utils import format_report, create_report_file, get_random_tip
 from config import TIPS
 
 # Состояния для ConversationHandler
-WAITING_TIME, WAITING_MESSAGE, WAITING_REASON = range(3)
-
-
-# === ПРОВЕРКА НАПОМИНАНИЙ ===
-# === ПРОВЕРКА НАПОМИНАНИЙ ===
-async def check_and_send_due_reminders(context: ContextTypes.DEFAULT_TYPE):
-    """Проверяет и отправляет просроченные напоминания"""
-    from database import get_due_reminders, mark_reminder_sent
-    print("DEBUG: check_and_send_due_reminders ВЫЗВАНА")
-    due_reminders = get_due_reminders()
-    print(f"DEBUG: найдено напоминаний: {len(due_reminders)}")
-    for reminder_id, user_id, message in due_reminders:
-        print(f"DEBUG: отправляю напоминание {reminder_id} пользователю {user_id}")
-        try:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=f"🔔 *Напоминание!*\n\n{message}",
-                parse_mode="Markdown"
-            )
-            mark_reminder_sent(reminder_id)
-            print(f"✅ Reminder {reminder_id} sent to {user_id}")
-        except Exception as e:
-            print(f"❌ Failed to send reminder {reminder_id}: {e}")
-
-
-# === НАПОМИНАНИЯ (ДИАЛОГ) ===
-async def remind_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['in_reminder_dialog'] = True
-    await update.message.reply_text("⏰ Введите время в формате ЧЧ:ММ (например, `20:00`)", parse_mode="Markdown")
-    return WAITING_TIME
-
-async def remind_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    time_match = re.match(r'^(\d{1,2}):(\d{2})$', update.message.text)
-    if not time_match:
-        await update.message.reply_text("❌ Неправильный формат. Используйте ЧЧ:ММ")
-        return WAITING_TIME
-    hour, minute = int(time_match.group(1)), int(time_match.group(2))
-    context.user_data['reminder_hour'] = hour
-    context.user_data['reminder_minute'] = minute
-    await update.message.reply_text("✏️ Теперь напишите текст напоминания")
-    return WAITING_MESSAGE
-
-async def remind_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    hour = context.user_data.get('reminder_hour')
-    minute = context.user_data.get('reminder_minute')
-    text = update.message.text
-    now = datetime.now()
-    reminder_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    if reminder_time < now:
-        reminder_time += timedelta(days=1)
-    
-    add_reminder(update.effective_user.id, reminder_time, text)
-    
-    context.user_data.pop('in_reminder_dialog', None)
-    await update.message.reply_text(f"✅ Напоминание установлено на {hour:02d}:{minute:02d}\nТекст: {text}")
-    return ConversationHandler.END
-
-async def remind_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.pop('in_reminder_dialog', None)
-    await update.message.reply_text("❌ Напоминание отменено")
-    return ConversationHandler.END
+WAITING_REASON = 0
 
 
 # === БАЗОВЫЕ КОМАНДЫ ===
@@ -131,7 +71,6 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 *Дополнительно:*
 • 💡 *Совет* — случайный полезный совет
-• ⏰ *Напомнить* — установить напоминание
 
 *🎯 Пример использования:*
 1. Нажмите 🌙 *Сон* → введите `7.5` → бот запишет
