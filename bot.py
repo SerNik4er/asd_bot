@@ -14,8 +14,6 @@ from handlers.medications import (
 )
 from config import BOT_TOKEN
 from database import init_db
-from scheduler import start_scheduler, stop_scheduler
-#from scheduler_tasks import load_active_reminders
 from keyboards import get_main_keyboard, get_meltdown_keyboard, get_medications_keyboard
 
 # Импорты из on_handlers
