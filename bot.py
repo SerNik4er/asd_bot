@@ -164,7 +164,7 @@ def main():
             WAITING_BEHAVIOR_SEVERITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, track_behavior_severity)],
             WAITING_BEHAVIOR_REASON: [MessageHandler(filters.TEXT & ~filters.COMMAND, track_behavior_reason)],
         },
-        fallbacks=[CommandHandler("cancel", cancel_general)],
+        fallbacks=[CommandHandler("cancel", cancel)],
     )
     app.add_handler(behavior_conv)
     # Диалог для причин истерик
