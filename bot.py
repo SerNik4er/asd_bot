@@ -29,16 +29,9 @@ from on_handlers import (
     show_stats,
     export_report,
     random_tip,
-    remind_start,
-    remind_time,
-    remind_message,
-    remind_cancel,
     ask_reason_callback,
     save_reason,
     reason_cancel,
-    check_and_send_due_reminders,
-    WAITING_TIME,
-    WAITING_MESSAGE,
     WAITING_REASON
 )
 
@@ -48,16 +41,8 @@ from handlers.admin import users_list
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик кнопок с русским текстом"""
-    await update.message.reply_text("DEBUG: handle_text вызван")
-    # ПРОВЕРКА ПРОСРОЧЕННЫХ НАПОМИНАНИЙ
-    await check_and_send_due_reminders(context)
-    
     text = update.message.text
     print(f"DEBUG: handle_text получил текст: '{text}'")
-
-    if context.user_data.get('in_reminder_dialog'):
-        print("DEBUG: В диалоге напоминания, пропускаем")
-        return
     
     if text == "🌙 Сон":
         await update.message.reply_text("Введите время сна в часах, например: 7.5")
@@ -75,8 +60,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_stats(update, context)
     elif text == "💡 Совет":
         await random_tip(update, context)
-    elif text == "⏰ Напомнить":
-        await remind_start(update, context)
     elif text == "📤 Отчет":
         await export_report(update, context)
     elif text == "💊 Лекарства":
@@ -135,37 +118,15 @@ async def check_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ Ошибка: {e}")
 
-async def test_reminders(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    from database import get_due_reminders
-    due = get_due_reminders()
-    await update.message.reply_text(f"Найдено просроченных напоминаний: {len(due)}")
-    for r in due:
-        await update.message.reply_text(f"ID: {r[0]}, User: {r[1]}, Msg: {r[2]}")
-
 
 def main():
-    # Создаём приложение
     app = Application.builder().token(BOT_TOKEN).build()
 
     # Диагностические команды
     app.add_handler(CommandHandler("initdb", force_init_db))
     app.add_handler(CommandHandler("checkdb", check_db))
-    app.add_handler(CommandHandler("testrem", test_reminders))
-    # ========== 1. ДИАЛОГИ (ConversationHandler) ==========
-    
-    # Диалог для напоминаний
-    remind_conv_handler = ConversationHandler(
-        entry_points=[
-            CommandHandler("remind", remind_start),
-            MessageHandler(filters.Regex("^⏰ Напомнить$"), remind_start)
-        ],
-        states={
-            WAITING_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_time)],
-            WAITING_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_message)],
-        },
-        fallbacks=[CommandHandler("cancel", remind_cancel)],
-    )
-    app.add_handler(remind_conv_handler)
+
+    # ========== 1. ДИАЛОГИ ==========
     
     # Диалог отчёта по лекарству
     report_conv = ConversationHandler(
@@ -236,21 +197,19 @@ def main():
     app.add_handler(CommandHandler("stats", show_stats))
     app.add_handler(CommandHandler("report", export_report))
     app.add_handler(CommandHandler("tip", random_tip))
-    app.add_handler(CommandHandler("remind", remind_start))
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("users", users_list))
     app.add_handler(CommandHandler("med", medications_menu))
     app.add_handler(CommandHandler("med_list", list_medications))
 
-    # ========== 3. ОБРАБОТЧИК КНОПОК (В САМОМ КОНЦЕ) ==========
+    # ========== 3. ОБРАБОТЧИК КНОПОК ==========
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     # Инициализация БД
     init_db()
     print("База данных готова")
 
-    # Запуск бота
     print("Бот запущен! 🚀")
     app.run_polling()
 
