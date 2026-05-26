@@ -203,19 +203,15 @@ async def random_tip(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # === НАПОМИНАНИЯ (ConversationHandler) ===
 async def remind_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("DEBUG: remind_start ВЫЗВАН")
     context.user_data['in_reminder_dialog'] = True
     await update.message.reply_text("⏰ Введите время в формате ЧЧ:ММ (например, `20:00`)", parse_mode="Markdown")
     return WAITING_TIME
 
 async def remind_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("DEBUG: remind_time ВЫЗВАНА")
-    print(f"DEBUG: Текст сообщения: '{update.message.text}'")
     time_match = re.match(r'^(\d{1,2}):(\d{2})$', update.message.text)
     if not time_match:
         await update.message.reply_text("❌ Неправильный формат. Используйте ЧЧ:ММ")
         return WAITING_TIME
-
     hour, minute = int(time_match.group(1)), int(time_match.group(2))
     context.user_data['reminder_hour'] = hour
     context.user_data['reminder_minute'] = minute
@@ -226,28 +222,36 @@ async def remind_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     hour = context.user_data.get('reminder_hour')
     minute = context.user_data.get('reminder_minute')
     text = update.message.text
-
     now = datetime.now()
     reminder_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
     if reminder_time < now:
         reminder_time += timedelta(days=1)
-
     reminder_id = add_reminder(update.effective_user.id, reminder_time, text)
-
-    # Используем встроенный JobQueue
     seconds_until = (reminder_time - now).total_seconds()
     context.job_queue.run_once(
-        callback=send_reminder_callback,
+        callback=send_reminder,
         when=seconds_until,
-        data={
-            'chat_id': update.effective_chat.id,
-            'message': text
-        },
+        data={'chat_id': update.effective_chat.id, 'message': text},
         name=str(reminder_id)
     )
-
+    context.user_data.pop('in_reminder_dialog', None)
     await update.message.reply_text(f"✅ Напоминание установлено на {hour:02d}:{minute:02d}\nТекст: {text}")
     return ConversationHandler.END
+
+async def remind_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop('in_reminder_dialog', None)
+    await update.message.reply_text("❌ Напоминание отменено")
+    return ConversationHandler.END
+
+async def send_reminder(context: ContextTypes.DEFAULT_TYPE):
+    print("DEBUG: send_reminder ВЫЗВАНА")
+    job_data = context.job.data
+    await context.bot.send_message(
+        chat_id=job_data['chat_id'],
+        text=f"🔔 *Напоминание!*\n\n{job_data['message']}",
+        parse_mode="Markdown"
+    )
+    print("DEBUG: send_reminder ОТПРАВИЛА СООБЩЕНИЕ")
 
 # === ОБРАБОТКА ПРИЧИН СРЫВОВ ===
 async def ask_reason_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
