@@ -88,9 +88,6 @@ async def list_medications(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(text, parse_mode="Markdown")
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
-from database import get_active_medications, log_medication_take
-
 async def take_medication_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Начало диалога отметки приёма: показать список активных лекарств"""
     user_id = update.effective_user.id
