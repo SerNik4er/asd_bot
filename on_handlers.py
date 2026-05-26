@@ -14,10 +14,15 @@ WAITING_TIME, WAITING_MESSAGE, WAITING_REASON = range(3)
 
 
 # === ПРОВЕРКА НАПОМИНАНИЙ ===
+# === ПРОВЕРКА НАПОМИНАНИЙ ===
 async def check_and_send_due_reminders(context: ContextTypes.DEFAULT_TYPE):
     """Проверяет и отправляет просроченные напоминания"""
+    from database import get_due_reminders, mark_reminder_sent
+    print("DEBUG: check_and_send_due_reminders ВЫЗВАНА")
     due_reminders = get_due_reminders()
+    print(f"DEBUG: найдено напоминаний: {len(due_reminders)}")
     for reminder_id, user_id, message in due_reminders:
+        print(f"DEBUG: отправляю напоминание {reminder_id} пользователю {user_id}")
         try:
             await context.bot.send_message(
                 chat_id=user_id,
