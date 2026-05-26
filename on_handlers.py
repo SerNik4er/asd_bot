@@ -7,27 +7,56 @@ from telegram.ext import ContextTypes, ConversationHandler
 from database import add_event, get_stats, get_events_for_report, add_reminder, update_last_meltdown_reason, add_user
 from keyboards import get_meltdown_keyboard, get_main_keyboard
 from utils import format_report, create_report_file, get_random_tip
-from config import TIPS
+from config import TIPS, BOT_TOKEN
+from scheduler import schedule_reminder
 
 # Состояния для ConversationHandler
 WAITING_TIME, WAITING_MESSAGE, WAITING_REASON = range(3)
 
 
-async def send_reminder_callback(context: ContextTypes.DEFAULT_TYPE):
-    """Отправляет напоминание пользователю"""
-    job_data = context.job.data
-    chat_id = job_data['chat_id']
-    message = job_data['message']
+# === НАПОМИНАНИЯ ===
+async def remind_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['in_reminder_dialog'] = True
+    await update.message.reply_text("⏰ Введите время в формате ЧЧ:ММ (например, `20:00`)", parse_mode="Markdown")
+    return WAITING_TIME
+
+async def remind_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    time_match = re.match(r'^(\d{1,2}):(\d{2})$', update.message.text)
+    if not time_match:
+        await update.message.reply_text("❌ Неправильный формат. Используйте ЧЧ:ММ")
+        return WAITING_TIME
+    hour, minute = int(time_match.group(1)), int(time_match.group(2))
+    context.user_data['reminder_hour'] = hour
+    context.user_data['reminder_minute'] = minute
+    await update.message.reply_text("✏️ Теперь напишите текст напоминания")
+    return WAITING_MESSAGE
+
+async def remind_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    hour = context.user_data.get('reminder_hour')
+    minute = context.user_data.get('reminder_minute')
+    text = update.message.text
+    now = datetime.now()
+    reminder_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if reminder_time < now:
+        reminder_time += timedelta(days=1)
+    reminder_id = add_reminder(update.effective_user.id, reminder_time, text)
     
-    await context.bot.send_message(
-        chat_id=chat_id,
-        text=f"🔔 *Напоминание!*\n\n{message}",
-        parse_mode="Markdown"
-    )
+    # Планируем через APScheduler
+    schedule_reminder(BOT_TOKEN, update.effective_chat.id, text, reminder_time)
+    
+    context.user_data.pop('in_reminder_dialog', None)
+    await update.message.reply_text(f"✅ Напоминание установлено на {hour:02d}:{minute:02d}\nТекст: {text}")
+    return ConversationHandler.END
+
+async def remind_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop('in_reminder_dialog', None)
+    await update.message.reply_text("❌ Напоминание отменено")
+    return ConversationHandler.END
+
+
 # === БАЗОВЫЕ КОМАНДЫ ===
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    from database import add_user
     add_user(user.id, user.username, user.first_name)
     
     welcome_text = f"""
@@ -40,9 +69,9 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • 🍎 Записывать еду
 • 😥 Отслеживать срывы и их причины
 • 😊 Оценивать настроение
-• 💊 Вести дневник приёма лекарств (в разработке)
+• 💊 Вести дневник приёма лекарств
 • 📊 Показывать статистику за неделю
-• 📤 Готовить отчёт для врача (в разработке)
+• 📤 Готовить отчёт для врача
 • 💡 Давать полезные советы
 
 👉 *Как пользоваться:*
@@ -101,6 +130,8 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 Все данные хранятся только на вашем устройстве. Бот не передаёт их третьим лицам.
 """
     await update.message.reply_text(help_text, parse_mode="Markdown")
+
+
 # === ТРЕКЕРЫ ===
 async def track_sleep(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
@@ -162,6 +193,7 @@ async def track_mood(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mood_emoji = {1: "😭", 2: "😟", 3: "😐", 4: "🙂", 5: "😄"}
     await update.message.reply_text(f"✅ Записал настроение: {mood_emoji[mood]} ({mood}/5)")
 
+
 # === СТАТИСТИКА И ОТЧЕТЫ ===
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stats = get_stats(update.effective_user.id)
@@ -196,62 +228,12 @@ async def export_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     report_file = create_report_file(report_text)
     await update.message.reply_document(report_file, caption="📄 Отчет для врача")
 
+
 # === СОВЕТЫ ===
 async def random_tip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tip = get_random_tip(TIPS)
     await update.message.reply_text(tip, parse_mode="Markdown")
 
-# === НАПОМИНАНИЯ (ConversationHandler) ===
-async def remind_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['in_reminder_dialog'] = True
-    await update.message.reply_text("⏰ Введите время в формате ЧЧ:ММ (например, `20:00`)", parse_mode="Markdown")
-    return WAITING_TIME
-
-async def remind_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    time_match = re.match(r'^(\d{1,2}):(\d{2})$', update.message.text)
-    if not time_match:
-        await update.message.reply_text("❌ Неправильный формат. Используйте ЧЧ:ММ")
-        return WAITING_TIME
-    hour, minute = int(time_match.group(1)), int(time_match.group(2))
-    context.user_data['reminder_hour'] = hour
-    context.user_data['reminder_minute'] = minute
-    await update.message.reply_text("✏️ Теперь напишите текст напоминания")
-    return WAITING_MESSAGE
-
-async def remind_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    hour = context.user_data.get('reminder_hour')
-    minute = context.user_data.get('reminder_minute')
-    text = update.message.text
-    now = datetime.now()
-    reminder_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    if reminder_time < now:
-        reminder_time += timedelta(days=1)
-    reminder_id = add_reminder(update.effective_user.id, reminder_time, text)
-    seconds_until = (reminder_time - now).total_seconds()
-    context.job_queue.run_once(
-        callback=send_reminder,
-        when=seconds_until,
-        data={'chat_id': update.effective_chat.id, 'message': text},
-        name=str(reminder_id)
-    )
-    context.user_data.pop('in_reminder_dialog', None)
-    await update.message.reply_text(f"✅ Напоминание установлено на {hour:02d}:{minute:02d}\nТекст: {text}")
-    return ConversationHandler.END
-
-async def remind_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.pop('in_reminder_dialog', None)
-    await update.message.reply_text("❌ Напоминание отменено")
-    return ConversationHandler.END
-
-async def send_reminder(context: ContextTypes.DEFAULT_TYPE):
-    print("DEBUG: send_reminder ВЫЗВАНА")
-    job_data = context.job.data
-    await context.bot.send_message(
-        chat_id=job_data['chat_id'],
-        text=f"🔔 *Напоминание!*\n\n{job_data['message']}",
-        parse_mode="Markdown"
-    )
-    print("DEBUG: send_reminder ОТПРАВИЛА СООБЩЕНИЕ")
 
 # === ОБРАБОТКА ПРИЧИН СРЫВОВ ===
 async def ask_reason_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
