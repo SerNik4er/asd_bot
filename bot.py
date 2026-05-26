@@ -142,8 +142,6 @@ async def test_reminders(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for r in due:
         await update.message.reply_text(f"ID: {r[0]}, User: {r[1]}, Msg: {r[2]}")
 
-# В main() добавить:
-app.add_handler(CommandHandler("testrem", test_reminders))
 
 def main():
     # Создаём приложение
