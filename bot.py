@@ -16,7 +16,6 @@ from handlers.medications import (
 from config import BOT_TOKEN
 from database import init_db
 from keyboards import get_main_keyboard, get_meltdown_keyboard, get_medications_keyboard
-from scheduler import start_scheduler
 
 # Импорты из on_handlers
 from on_handlers import (
@@ -37,6 +36,7 @@ from on_handlers import (
     ask_reason_callback,
     save_reason,
     reason_cancel,
+    check_and_send_due_reminders,
     WAITING_TIME,
     WAITING_MESSAGE,
     WAITING_REASON
@@ -48,6 +48,10 @@ from handlers.admin import users_list
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик кнопок с русским текстом"""
+    
+    # ПРОВЕРКА ПРОСРОЧЕННЫХ НАПОМИНАНИЙ
+    await check_and_send_due_reminders(context)
+    
     text = update.message.text
     print(f"DEBUG: handle_text получил текст: '{text}'")
 
@@ -238,10 +242,6 @@ def main():
     # Инициализация БД
     init_db()
     print("База данных готова")
-
-    # Запуск планировщика
-    start_scheduler()
-    print("Планировщик запущен")
 
     # Запуск бота
     print("Бот запущен! 🚀")
