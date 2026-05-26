@@ -41,6 +41,10 @@ def format_report(user_id, events):
             mood_emojis = {1: "😭", 2: "😟", 3: "😐", 4: "🙂", 5: "😄"}
             mood_emoji = mood_emojis.get(severity, "😐")
             report_lines.append(f"😊 Настроение: {mood_emoji} {severity}/5 ({time_str})")
+        elif event_type == "behavior":
+            behavior_type = value if value else (note if note else "не указан")
+            severity_str = "🔴" * severity + "⚪" * (5 - severity)
+            report_lines.append(f"😔 Поведение: {behavior_type} (сила {severity}/5) {severity_str} ({time_str})")
         else:
             report_lines.append(f"📌 {event_type}: {value} ({time_str})")
     
