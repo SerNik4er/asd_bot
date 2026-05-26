@@ -10,6 +10,7 @@ from handlers.medications import (
     list_medications, take_medication_start, take_medication_selected,
     take_medication_reaction, take_medication_side_effects,
     take_medication_improvements, cancel_take,
+    report_medication_start, report_medication_selected, cancel_report,
     NAME, DOSAGE, START_DATE, TAKE_SELECT, TAKE_REACTION, TAKE_SIDE_EFFECTS, TAKE_IMPROVEMENTS, REPORT_SELECT
 )
 from config import BOT_TOKEN
@@ -73,26 +74,18 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "📤 Отчет":
         await export_report(update, context)
     elif text == "💊 Лекарства":
-        from handlers.medications import medications_menu
         await medications_menu(update, context)
     elif text == "➕ Добавить лекарство":
-        from handlers.medications import add_start
         await add_start(update, context)
     elif text == "📋 Мои лекарства":
-        from handlers.medications import list_medications
         await list_medications(update, context)
     elif text == "📊 Отчёт по лекарствам":
-        from handlers.medications import report_medication_start
         await report_medication_start(update, context)
     elif text == "❓ Помощь":
         await cmd_help(update, context)
     elif text == "🔙 Назад в главное меню":
-        await update.message.reply_text(
-            "Главное меню:",
-            reply_markup=get_main_keyboard()
-        )
+        await update.message.reply_text("Главное меню:", reply_markup=get_main_keyboard())
     else:
-        # Проверяем, есть ли ожидание ввода
         awaiting = context.user_data.get('awaiting')
         if awaiting == 'sleep':
             context.args = [text]
@@ -117,18 +110,15 @@ async def force_init_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def check_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from database import get_connection
     import os
-    
-    # Проверяем путь к БД
     from config import DATABASE_NAME
+    
     await update.message.reply_text(f"📁 Путь к БД: {DATABASE_NAME}")
     
-    # Проверяем, существует ли файл
     if os.path.exists(DATABASE_NAME):
         await update.message.reply_text(f"✅ Файл БД существует, размер: {os.path.getsize(DATABASE_NAME)} байт")
     else:
         await update.message.reply_text("❌ Файл БД НЕ существует")
     
-    # Проверяем таблицы
     try:
         with get_connection() as conn:
             c = conn.cursor()
@@ -139,37 +129,32 @@ async def check_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ Ошибка: {e}")
 
-# В main():
+
 def main():
     # Создаём приложение
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # ========== ДИАГНОСТИЧЕСКИЕ КОМАНДЫ ==========
+    # Диагностические команды
     app.add_handler(CommandHandler("initdb", force_init_db))
     app.add_handler(CommandHandler("checkdb", check_db))
 
-    # ========== 1. СНАЧАЛА ВСЕ ДИАЛОГИ (ConversationHandler) ==========
+    # ========== 1. ДИАЛОГИ (ConversationHandler) ==========
     
     # Диалог для напоминаний
     remind_conv_handler = ConversationHandler(
-    entry_points=[
-        CommandHandler("remind", remind_start),
-        MessageHandler(filters.Regex("^⏰ Напомнить$"), remind_start)
-    ],
-    states={
-        WAITING_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_time)],
-        WAITING_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_message)],
-    },
-    fallbacks=[CommandHandler("cancel", remind_cancel)],
-)
-app.add_handler(remind_conv_handler)
+        entry_points=[
+            CommandHandler("remind", remind_start),
+            MessageHandler(filters.Regex("^⏰ Напомнить$"), remind_start)
+        ],
+        states={
+            WAITING_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_time)],
+            WAITING_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_message)],
+        },
+        fallbacks=[CommandHandler("cancel", remind_cancel)],
+    )
+    app.add_handler(remind_conv_handler)
     
     # Диалог отчёта по лекарству
-from handlers.medications import (
-    report_medication_start, report_medication_selected, cancel_report,
-    REPORT_SELECT
-    )
-
     report_conv = ConversationHandler(
         entry_points=[
             CommandHandler("med_report", report_medication_start),
@@ -229,8 +214,7 @@ from handlers.medications import (
     )
     app.add_handler(take_med_conv)
 
-    # ========== 2. ПОТОМ ВСЕ КОМАНДЫ (CommandHandler) ==========
-    
+    # ========== 2. КОМАНДЫ ==========
     app.add_handler(CommandHandler("sleep", track_sleep))
     app.add_handler(CommandHandler("food", track_food))
     app.add_handler(CommandHandler("meltdown", track_meltdown))
@@ -246,23 +230,16 @@ from handlers.medications import (
     app.add_handler(CommandHandler("med", medications_menu))
     app.add_handler(CommandHandler("med_list", list_medications))
 
-    # ========== 3. В САМОМ КОНЦЕ — ОБРАБОТЧИК КНОПОК ==========
+    # ========== 3. ОБРАБОТЧИК КНОПОК (В САМОМ КОНЦЕ) ==========
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-    # ========== ИНИЦИАЛИЗАЦИЯ ==========
+    # Инициализация БД
     init_db()
     print("База данных готова")
 
-    # ========== ЗАПУСК ПЛАНИРОВЩИКА ==========
-    start_scheduler()
-    print("Планировщик запущен")
-
-    # ========== ЗАПУСК БОТА ==========
+    # Запуск бота
     print("Бот запущен! 🚀")
     app.run_polling()
-
-    # ========== ОСТАНОВКА ПЛАНИРОВЩИКА ПРИ ЗАВЕРШЕНИИ ==========
-    stop_scheduler()
 
 
 if __name__ == "__main__":
