@@ -6,8 +6,8 @@ from keyboards import get_main_keyboard, get_medications_keyboard
 
 # Состояния для диалога добавления лекарства
 NAME, DOSAGE, START_DATE = range(3)
-TAKE_SELECT, TAKE_REACTION, TAKE_SIDE_EFFECTS, TAKE_IMPROVEMENTS = range(4, 8)
-REPORT_SELECT = 8
+TAKE_SELECT, TAKE_TIME, TAKE_REACTION, TAKE_SIDE_EFFECTS, TAKE_IMPROVEMENTS = range(4, 9)
+REPORT_SELECT = 9
 
 
 async def medications_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -130,14 +130,33 @@ async def take_medication_selected(update: Update, context: ContextTypes.DEFAULT
     med_id = int(query.data.split("_")[1])
     context.user_data['take_med_id'] = med_id
 
-    # Получаем название лекарства для сохранения в контексте (опционально)
+    # Получаем название лекарства
     meds = get_active_medications(query.from_user.id)
     for med in meds:
         if med[0] == med_id:
             context.user_data['take_med_name'] = med[1]
             break
 
+    # Спрашиваем время приёма
     await query.message.reply_text(
+        "🕐 В какое время дали лекарство?",
+        reply_markup=ReplyKeyboardMarkup([
+            ["🌅 Утро", "☀️ День"],
+            ["🌙 Вечер", "❌ Отмена"]
+        ], resize_keyboard=True)
+    )
+    return TAKE_TIME
+
+
+async def take_medication_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Сохраняем время приёма"""
+    if update.message.text == "❌ Отмена":
+        await update.message.reply_text("❌ Отметка приёма отменена.", reply_markup=get_main_keyboard())
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    context.user_data['take_time'] = update.message.text
+    await update.message.reply_text(
         "📝 Как ребёнок перенёс приём?\n"
         "Выберите вариант или напишите свой:",
         reply_markup=ReplyKeyboardMarkup([
@@ -151,6 +170,11 @@ async def take_medication_selected(update: Update, context: ContextTypes.DEFAULT
 
 async def take_medication_reaction(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Сохраняем реакцию, спрашиваем о побочках"""
+    if update.message.text == "❌ Отмена":
+        await update.message.reply_text("❌ Отметка приёма отменена.", reply_markup=get_main_keyboard())
+        context.user_data.clear()
+        return ConversationHandler.END
+
     context.user_data['take_reaction'] = update.message.text
 
     await update.message.reply_text(
@@ -163,6 +187,11 @@ async def take_medication_reaction(update: Update, context: ContextTypes.DEFAULT
 
 async def take_medication_side_effects(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Сохраняем побочки, спрашиваем об улучшениях"""
+    if update.message.text == "❌ Отмена":
+        await update.message.reply_text("❌ Отметка приёма отменена.", reply_markup=get_main_keyboard())
+        context.user_data.clear()
+        return ConversationHandler.END
+
     context.user_data['take_side_effects'] = update.message.text
 
     await update.message.reply_text(
@@ -179,18 +208,25 @@ async def take_medication_side_effects(update: Update, context: ContextTypes.DEF
 
 async def take_medication_improvements(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Сохраняем все данные в БД и завершаем"""
+    if update.message.text == "❌ Отмена":
+        await update.message.reply_text("❌ Отметка приёма отменена.", reply_markup=get_main_keyboard())
+        context.user_data.clear()
+        return ConversationHandler.END
+
     user_id = update.effective_user.id
     med_id = context.user_data.get('take_med_id')
     med_name = context.user_data.get('take_med_name', 'лекарства')
+    take_time = context.user_data.get('take_time')
     reaction = context.user_data.get('take_reaction')
     side_effects = context.user_data.get('take_side_effects')
     improvements = update.message.text
 
-    # Сохраняем в БД
-    log_medication_take(med_id, reaction, side_effects, improvements)
+    # Сохраняем в БД с указанием времени
+    log_medication_take(med_id, take_time, reaction, side_effects, improvements)
 
     await update.message.reply_text(
         f"✅ Приём {med_name} записан!\n\n"
+        f"🕐 Время: {take_time}\n"
         f"📝 Реакция: {reaction}\n"
         f"⚠️ Побочные эффекты: {side_effects}\n"
         f"📈 Улучшения: {improvements}",
@@ -272,10 +308,11 @@ async def report_medication_selected(update: Update, context: ContextTypes.DEFAU
     report += f"📊 Всего приёмов: {len(logs)}\n\n"
     report += "📋 *История приёмов:*\n"
 
-    for i, (taken_date, reaction, side_effects, improvements) in enumerate(logs, 1):
+    for i, (taken_date, take_time, reaction, side_effects, improvements) in enumerate(logs, 1):
         # Форматируем дату
         date_str = taken_date[:16].replace("T", " ") if taken_date else "дата неизвестна"
         report += f"\n{i}. 🕒 {date_str}\n"
+        report += f"   ⏰ Время: {escape_markdown(take_time or '—')}\n"
         report += f"   📝 Реакция: {escape_markdown(reaction or '—')}\n"
         report += f"   ⚠️ Побочки: {escape_markdown(side_effects or '—')}\n"
         report += f"   📈 Улучшения: {escape_markdown(improvements or '—')}\n"
