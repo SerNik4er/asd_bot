@@ -32,6 +32,13 @@ from on_handlers import (
     ask_reason_callback,
     save_reason,
     reason_cancel,
+    track_behavior_start,
+    track_behavior_type,
+    track_behavior_severity,
+    track_behavior_reason,
+    WAITING_BEHAVIOR_TYPE,
+    WAITING_BEHAVIOR_SEVERITY,
+    WAITING_BEHAVIOR_REASON
     WAITING_REASON
 )
 
@@ -50,7 +57,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "🍎 Еда":
         await update.message.reply_text("Что сегодня ел ребенок?")
         context.user_data['awaiting'] = 'food'
-    elif text == "😥 Срыв":
+    elif text == "😔 Поведение":
         await update.message.reply_text("Оцените силу от 1 до 5")
         context.user_data['awaiting'] = 'meltdown'
     elif text == "😊 Настроение":
@@ -149,7 +156,17 @@ def main():
         ],
     )
     app.add_handler(report_conv)
-    
+
+    behavior_conv = ConversationHandler(
+        entry_points=[MessageHandler(filters.Regex("^😔 Поведение$"), track_behavior_start)],
+        states={
+            WAITING_BEHAVIOR_TYPE: [MessageHandler(filters.TEXT & ~filters.COMMAND, track_behavior_type)],
+            WAITING_BEHAVIOR_SEVERITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, track_behavior_severity)],
+            WAITING_BEHAVIOR_REASON: [MessageHandler(filters.TEXT & ~filters.COMMAND, track_behavior_reason)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel_general)],
+    )
+    app.add_handler(behavior_conv)
     # Диалог для причин истерик
     reason_conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(ask_reason_callback, pattern="add_reason")],
