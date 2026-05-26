@@ -220,7 +220,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = f"""
 📊 **Статистика за неделю**
 
-😭 **Срывы:** {stats['meltdown_count']} раз(а)
+😔 **Поведение:** {stats['behavior_count']} раз(а)
 📈 **Средняя сила:** {stats['avg_severity']}/5
 
 🌙 **Последние записи сна:**
