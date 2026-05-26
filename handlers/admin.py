@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 from config import ADMIN_IDS, DATABASE_NAME
+from utils import escape_markdown
 import sqlite3
 
 async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -23,12 +24,12 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("📭 Пользователей пока нет.")
             return
 
-        # Формируем красивое сообщение
+        # Формируем красивое сообщение (без Markdown, чтобы избежать ошибок)
         message_text = "👥 *Список пользователей:*\n\n"
         for user in users:
             user_id, username, first_name, created_at = user
-            name_part = first_name if first_name else "Без имени"
-            username_part = f"(@{username})" if username else ""
+            name_part = escape_markdown(first_name) if first_name else "Без имени"
+            username_part = f"(@{escape_markdown(username)})" if username else ""
             message_text += f"• {name_part} {username_part} — ID: `{user_id}`\n"
 
         await update.message.reply_text(message_text, parse_mode="Markdown")
