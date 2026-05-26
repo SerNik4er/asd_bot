@@ -38,7 +38,7 @@ from on_handlers import (
     track_behavior_reason,
     WAITING_BEHAVIOR_TYPE,
     WAITING_BEHAVIOR_SEVERITY,
-    WAITING_BEHAVIOR_REASON
+    WAITING_BEHAVIOR_REASON,
     WAITING_REASON
 )
 
