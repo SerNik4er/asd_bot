@@ -48,7 +48,7 @@ from handlers.admin import users_list
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик кнопок с русским текстом"""
-    
+    await update.message.reply_text("DEBUG: handle_text вызван")
     # ПРОВЕРКА ПРОСРОЧЕННЫХ НАПОМИНАНИЙ
     await check_and_send_due_reminders(context)
     
