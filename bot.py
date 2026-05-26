@@ -152,17 +152,17 @@ def main():
     
     # Диалог для напоминаний
     remind_conv_handler = ConversationHandler(
-        entry_points=[
-            CommandHandler("remind", remind_start),
-            MessageHandler(filters.Regex("^⏰ Напомнить$"), remind_start)  # ← ДЛЯ КНОПКИ
-        ],
-        states={
-            WAITING_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_time)],
-            WAITING_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_message)],
-        },
-        fallbacks=[CommandHandler("cancel", remind_cancel)],
-    )
-    app.add_handler(remind_conv_handler)
+    entry_points=[
+        CommandHandler("remind", remind_start),
+        MessageHandler(filters.Regex("^⏰ Напомнить$"), remind_start)
+    ],
+    states={
+        WAITING_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_time)],
+        WAITING_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_message)],
+    },
+    fallbacks=[CommandHandler("cancel", remind_cancel)],
+)
+app.add_handler(remind_conv_handler)
     
     # Диалог отчёта по лекарству
     from handlers.medications import (
