@@ -63,6 +63,15 @@ def add_user(user_id: int, username: str = None, first_name: str = None):
                      VALUES (?, ?, ?)''',
                   (user_id, username, first_name))
         conn.commit()
+def add_event(user_id: int, event_type: str, behavior_type: str = "", value: str = "", severity: int = None, note: str = ""):
+    with get_connection() as conn:
+        c = conn.cursor()
+        now = datetime.now().isoformat()
+        c.execute('''INSERT INTO events
+                (user_id, date, event_type, behavior_type, value, severity, note)
+                VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                (user_id, now, event_type, behavior_type, value, severity, note))
+        conn.commit()
 
 def get_all_users():
     """Получение списка всех пользователей"""
