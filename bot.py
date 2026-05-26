@@ -16,6 +16,7 @@ from handlers.medications import (
 from config import BOT_TOKEN
 from database import init_db
 from keyboards import get_main_keyboard, get_meltdown_keyboard, get_medications_keyboard
+from scheduler import start_scheduler
 
 # Импорты из on_handlers
 from on_handlers import (
@@ -53,7 +54,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get('in_reminder_dialog'):
         print("DEBUG: В диалоге напоминания, пропускаем")
         return
-    elif text == "🌙 Сон":
+    
+    if text == "🌙 Сон":
         await update.message.reply_text("Введите время сна в часах, например: 7.5")
         context.user_data['awaiting'] = 'sleep'
     elif text == "🍎 Еда":
@@ -236,6 +238,10 @@ def main():
     # Инициализация БД
     init_db()
     print("База данных готова")
+
+    # Запуск планировщика
+    start_scheduler()
+    print("Планировщик запущен")
 
     # Запуск бота
     print("Бот запущен! 🚀")
