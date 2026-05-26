@@ -11,7 +11,9 @@ from config import TIPS
 
 # Состояния для ConversationHandler
 WAITING_REASON = 0
-
+WAITING_BEHAVIOR_TYPE = 3
+WAITING_BEHAVIOR_SEVERITY = 4
+WAITING_BEHAVIOR_REASON = 5
 
 # === БАЗОВЫЕ КОМАНДЫ ===
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
