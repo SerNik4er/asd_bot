@@ -7,9 +7,6 @@ from telegram.ext import ContextTypes, ConversationHandler
 from database import add_event, get_stats, get_events_for_report, add_reminder, update_last_meltdown_reason, add_user
 from keyboards import get_meltdown_keyboard, get_main_keyboard
 from utils import format_report, create_report_file, get_random_tip
-from scheduler import schedule_reminder
-from config import BOT_TOKEN
-#from scheduler_tasks import schedule_reminder
 from config import TIPS
 
 # Состояния для ConversationHandler
@@ -237,16 +234,19 @@ async def remind_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     reminder_id = add_reminder(update.effective_user.id, reminder_time, text)
 
-    # Планируем через APScheduler (вместо JobQueue)
-    schedule_reminder(BOT_TOKEN, update.effective_chat.id, text, reminder_time, reminder_id)
+    # Используем встроенный JobQueue
+    seconds_until = (reminder_time - now).total_seconds()
+    context.job_queue.run_once(
+        callback=send_reminder_callback,
+        when=seconds_until,
+        data={
+            'chat_id': update.effective_chat.id,
+            'message': text
+        },
+        name=str(reminder_id)
+    )
 
     await update.message.reply_text(f"✅ Напоминание установлено на {hour:02d}:{minute:02d}\nТекст: {text}")
-    return ConversationHandler.END
-    
-async def remind_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("DEBUG: remind_cancel ВЫЗВАН")
-    context.user_data.pop('in_reminder_dialog', None)
-    await update.message.reply_text("❌ Напоминание отменено")
     return ConversationHandler.END
 
 # === ОБРАБОТКА ПРИЧИН СРЫВОВ ===
