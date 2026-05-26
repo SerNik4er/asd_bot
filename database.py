@@ -1,8 +1,6 @@
 import sqlite3
 from datetime import datetime, timedelta
 
-#from apscheduler.schedulers.gevent import GeventScheduler
-
 from config import DATABASE_NAME
 
 def get_connection():
@@ -14,7 +12,7 @@ def init_db():
     with get_connection() as conn:
         c = conn.cursor()
 
-        # Таблица пользователей (НОВАЯ!)
+        # Таблица пользователей
         c.execute('''CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
                 username TEXT,
@@ -40,7 +38,7 @@ def init_db():
                 message TEXT,
                 is_active INTEGER DEFAULT 1)''')
 
-         # Новая таблица: лекарства
+        # Таблица лекарств
         c.execute('''CREATE TABLE IF NOT EXISTS medications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
@@ -51,7 +49,7 @@ def init_db():
             status TEXT DEFAULT 'active'
         )''')
 
-        # Новая таблица: приёмы лекарств
+        # Таблица приёмов лекарств
         c.execute('''CREATE TABLE IF NOT EXISTS medication_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             medication_id INTEGER,
@@ -121,28 +119,44 @@ def log_medication_take(medication_id: int, reaction: str, side_effects: str, im
                      VALUES (?, ?, ?, ?, ?)''',
                   (medication_id, now, reaction, side_effects, improvements))
         conn.commit()
-        
+
+def get_medication_by_id(medication_id: int, user_id: int):
+    """Получить информацию о лекарстве по ID"""
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute('''SELECT id, name, dosage, start_date, end_date
+                     FROM medications 
+                     WHERE id = ? AND user_id = ?''', (medication_id, user_id))
+        return c.fetchone()
+
+def get_medication_logs(medication_id: int):
+    """Получить все записи о приёме лекарства"""
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute('''SELECT taken_date, reaction, side_effects, improvements
+                     FROM medication_logs 
+                     WHERE medication_id = ?
+                     ORDER BY taken_date DESC''', (medication_id,))
+        return c.fetchall()
+
 def get_stats(user_id: int, days: int = 7):
     """Получение статистики за последние N дней"""
     with get_connection() as conn:
         c = conn.cursor()
         since_date = (datetime.now() - timedelta(days=days)).isoformat()
 
-        # Статистика по истерикам
         c.execute('''SELECT COUNT(*), AVG(severity)
                 FROM events
                 WHERE user_id=? AND event_type='meltdown' AND date>?''',
                   (user_id, since_date))
         meltdown_count, avg_severity = c.fetchone()
 
-        # Статистика по сну
         c.execute('''SELECT value FROM events 
                      WHERE user_id=? AND event_type='sleep' AND date>? 
                      ORDER BY date DESC LIMIT 5''',
                   (user_id, since_date))
         sleep_records = c.fetchall()
 
-        # Причины истерик
         c.execute('''SELECT note FROM events 
                      WHERE user_id=? AND event_type='meltdown' 
                      AND note!='' AND date>?''',
@@ -172,20 +186,27 @@ def add_reminder(user_id: int, reminder_time, message: str):
     """Добавление напоминания в БД"""
     with get_connection() as conn:
         c = conn.cursor()
-        c.execute('''INSERT INTO reminders (user_id, reminder_time, message) 
-                     VALUES (?, ?, ?)''',
+        c.execute('''INSERT INTO reminders (user_id, reminder_time, message, is_active) 
+                     VALUES (?, ?, ?, 1)''',
                   (user_id, reminder_time.isoformat(), message))
         conn.commit()
         return c.lastrowid
 
-def get_active_reminders():
-    """Получение всех активных напоминаний"""
+def get_due_reminders():
+    """Получить напоминания, которые пора отправить и ещё не отправлены"""
     with get_connection() as conn:
         c = conn.cursor()
-        c.execute('''SELECT id, user_id, reminder_time, message 
-                     FROM reminders 
-                     WHERE is_active=1''')
+        now = datetime.now().isoformat()
+        c.execute('''SELECT id, user_id, message FROM reminders 
+                     WHERE reminder_time <= ? AND is_active = 1''', (now,))
         return c.fetchall()
+
+def mark_reminder_sent(reminder_id: int):
+    """Отметить напоминание как отправленное"""
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute('UPDATE reminders SET is_active = 0 WHERE id = ?', (reminder_id,))
+        conn.commit()
 
 def update_last_meltdown_reason(user_id: int, reason: str):
     """Обновление причины последней истерики"""
@@ -197,22 +218,3 @@ def update_last_meltdown_reason(user_id: int, reason: str):
                      ORDER BY date DESC LIMIT 1''',
                   (reason, user_id))
         conn.commit()
-
-def get_medication_logs(medication_id: int):
-    """Получить все записи о приёме лекарства"""
-    with get_connection() as conn:
-        c = conn.cursor()
-        c.execute('''SELECT taken_date, reaction, side_effects, improvements
-                     FROM medication_logs 
-                     WHERE medication_id = ?
-                     ORDER BY taken_date DESC''', (medication_id,))
-        return c.fetchall()
-
-def get_medication_by_id(medication_id: int, user_id: int):
-    """Получить информацию о лекарстве по ID"""
-    with get_connection() as conn:
-        c = conn.cursor()
-        c.execute('''SELECT id, name, dosage, start_date, end_date
-                     FROM medications 
-                     WHERE id = ? AND user_id = ?''', (medication_id, user_id))
-        return c.fetchone()
