@@ -8,10 +8,10 @@ from handlers.medications import (
     medications_menu,
     add_start, add_name, add_dosage, add_start_date, cancel,
     list_medications, take_medication_start, take_medication_selected,
-    take_medication_reaction, take_medication_side_effects,
+    take_medication_time, take_medication_reaction, take_medication_side_effects,
     take_medication_improvements, cancel_take,
     report_medication_start, report_medication_selected, cancel_report,
-    NAME, DOSAGE, START_DATE, TAKE_SELECT, TAKE_REACTION, TAKE_SIDE_EFFECTS, TAKE_IMPROVEMENTS, REPORT_SELECT
+    NAME, DOSAGE, START_DATE, TAKE_SELECT, TAKE_TIME, TAKE_REACTION, TAKE_SIDE_EFFECTS, TAKE_IMPROVEMENTS, REPORT_SELECT
 )
 from config import BOT_TOKEN
 from database import init_db
@@ -44,6 +44,8 @@ from on_handlers import (
 
 # Импорт админской команды
 from handlers.admin import users_list
+
+ADMIN_IDS = [1249686924]  # ваш ID
 
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -96,6 +98,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.args = [text]
             await track_mood(update, context)
         context.user_data.pop('awaiting', None)
+
 
 async def force_init_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS:
@@ -157,6 +160,7 @@ def main():
     )
     app.add_handler(report_conv)
 
+    # Диалог для записи поведения
     behavior_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex("^😔 Поведение$"), track_behavior_start)],
         states={
@@ -167,7 +171,8 @@ def main():
         fallbacks=[CommandHandler("cancel", cancel)],
     )
     app.add_handler(behavior_conv)
-    # Диалог для причин истерик
+
+    # Диалог для причин поведения
     reason_conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(ask_reason_callback, pattern="add_reason")],
         states={
@@ -200,6 +205,7 @@ def main():
         ],
         states={
             TAKE_SELECT: [CallbackQueryHandler(take_medication_selected, pattern="^take_")],
+            TAKE_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, take_medication_time)],
             TAKE_REACTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, take_medication_reaction)],
             TAKE_SIDE_EFFECTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, take_medication_side_effects)],
             TAKE_IMPROVEMENTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, take_medication_improvements)],
