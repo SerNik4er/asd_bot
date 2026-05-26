@@ -1,13 +1,12 @@
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
 from telegram import Bot
-import asyncio
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-scheduler = BackgroundScheduler()
+scheduler = AsyncIOScheduler()
 
 def schedule_reminder(bot_token: str, chat_id: int, message: str, reminder_time, reminder_id: int):
     """Планирует отправку напоминания"""
@@ -25,7 +24,7 @@ def schedule_reminder(bot_token: str, chat_id: int, message: str, reminder_time,
             logger.error(f"Failed to send reminder {reminder_id}: {e}")
     
     scheduler.add_job(
-        lambda: asyncio.run(send_reminder()),
+        send_reminder,
         trigger=DateTrigger(run_date=reminder_time),
         id=f"reminder_{reminder_id}",
         replace_existing=True
