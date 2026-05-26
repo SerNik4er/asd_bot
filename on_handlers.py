@@ -5,7 +5,7 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
 
 from database import add_event, get_stats, get_events_for_report, update_last_meltdown_reason, add_user
-from keyboards import get_meltdown_keyboard, get_main_keyboard
+from keyboards import get_meltdown_keyboard, get_main_keyboard, get_behavior_keyboard
 from utils import format_report, create_report_file, get_random_tip
 from config import TIPS
 
@@ -90,6 +90,65 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(help_text, parse_mode="Markdown")
 
 
+async def track_behavior_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Начало диалога записи поведения"""
+    await update.message.reply_text(
+        "😔 Выберите тип нежелательного поведения:",
+        reply_markup=get_behavior_keyboard()
+    )
+    return WAITING_BEHAVIOR_TYPE
+
+async def track_behavior_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Сохраняем тип поведения"""
+    if update.message.text == "❌ Отмена":
+        await update.message.reply_text("❌ Запись поведения отменена.", reply_markup=get_main_keyboard())
+        return ConversationHandler.END
+    
+    context.user_data['behavior_type'] = update.message.text
+    await update.message.reply_text("Оцените силу от 1 до 5 (1 — слабо, 5 — очень сильно):")
+    return WAITING_BEHAVIOR_SEVERITY
+
+async def track_behavior_severity(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Сохраняем силу, запрашиваем причину"""
+    try:
+        severity = max(1, min(5, int(update.message.text)))
+        context.user_data['severity'] = severity
+    except ValueError:
+        await update.message.reply_text("❌ Введите число от 1 до 5")
+        return WAITING_BEHAVIOR_SEVERITY
+    
+    await update.message.reply_text("✏️ Напишите причину (если знаете) или отправьте 'нет'")
+    return WAITING_BEHAVIOR_REASON
+
+async def track_behavior_reason(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Сохраняем причину и завершаем"""
+    from database import add_event
+    
+    reason = update.message.text
+    if reason.lower() == "нет":
+        reason = ""
+    
+    add_event(
+        user_id=update.effective_user.id,
+        event_type="behavior",
+        behavior_type=context.user_data.get('behavior_type'),
+        value="",
+        severity=context.user_data.get('severity'),
+        note=reason
+    )
+    
+    behavior_type = context.user_data.get('behavior_type')
+    severity = context.user_data.get('severity')
+    
+    await update.message.reply_text(
+        f"✅ Записал поведение:\n"
+        f"📋 Тип: {behavior_type}\n"
+        f"💪 Сила: {severity}/5\n"
+        f"📝 Причина: {reason if reason else 'не указана'}",
+        reply_markup=get_main_keyboard()
+    )
+    context.user_data.clear()
+    return ConversationHandler.END
 # === ТРЕКЕРЫ ===
 async def track_sleep(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
