@@ -14,7 +14,8 @@ from handlers.medications import (
 )
 from config import BOT_TOKEN
 from database import init_db
-from scheduler_tasks import load_active_reminders
+from scheduler import start_scheduler, stop_scheduler
+#from scheduler_tasks import load_active_reminders
 from keyboards import get_main_keyboard, get_meltdown_keyboard, get_medications_keyboard
 
 # Импорты из on_handlers
@@ -145,7 +146,7 @@ def main():
     # Создаём приложение
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # Диагностические команды
+    # ========== ДИАГНОСТИЧЕСКИЕ КОМАНДЫ ==========
     app.add_handler(CommandHandler("initdb", force_init_db))
     app.add_handler(CommandHandler("checkdb", check_db))
 
@@ -153,7 +154,10 @@ def main():
     
     # Диалог для напоминаний
     remind_conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("remind", remind_start)],
+        entry_points=[
+            CommandHandler("remind", remind_start),
+            MessageHandler(filters.Regex("^⏰ Напомнить$"), remind_start)  # ← ДЛЯ КНОПКИ
+        ],
         states={
             WAITING_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_time)],
             WAITING_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, remind_message)],
@@ -178,7 +182,7 @@ def main():
         },
         fallbacks=[
             CommandHandler("cancel", cancel_report),
-            CallbackQueryHandler(cancel_report, pattern="^cancel_report$"),  # ← ДОБАВИТЬ
+            CallbackQueryHandler(cancel_report, pattern="^cancel_report$"),
         ],
     )
     app.add_handler(report_conv)
@@ -222,7 +226,7 @@ def main():
         },
         fallbacks=[
             CommandHandler("cancel", cancel_take),
-            CallbackQueryHandler(cancel_take, pattern="^cancel_take$"),  # ← ДОБАВИТЬ
+            CallbackQueryHandler(cancel_take, pattern="^cancel_take$"),
         ],
     )
     app.add_handler(take_med_conv)
@@ -251,9 +255,16 @@ def main():
     init_db()
     print("База данных готова")
 
-    # Запуск бота
+    # ========== ЗАПУСК ПЛАНИРОВЩИКА ==========
+    start_scheduler()
+    print("Планировщик запущен")
+
+    # ========== ЗАПУСК БОТА ==========
     print("Бот запущен! 🚀")
     app.run_polling()
+
+    # ========== ОСТАНОВКА ПЛАНИРОВЩИКА ПРИ ЗАВЕРШЕНИИ ==========
+    stop_scheduler()
 
 
 if __name__ == "__main__":
