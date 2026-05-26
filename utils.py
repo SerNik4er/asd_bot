@@ -1,15 +1,20 @@
 import io
 from datetime import datetime
 
+def escape_markdown(text: str) -> str:
+    """Экранирует спецсимволы для Telegram Markdown"""
+    if not text:
+        return ""
+    escape_chars = r'_*[]()~`>#+-=|{}.!'
+    return ''.join(f'\\{char}' if char in escape_chars else char for char in str(text))
+
 def format_report(user_id, events):
     """Форматирует события в читаемый отчёт"""
     report_lines = [f"📋 Отчёт для пользователя {user_id}", f"📅 Период: {datetime.now().strftime('%d.%m.%Y')}", "", "=" * 50, ""]
     
     for event in events:
-        # Распаковываем 5 полей: date, event_type, value, severity, note
         date_str, event_type, value, severity, note = event
         
-        # Преобразуем дату
         try:
             if isinstance(date_str, str):
                 created_at = datetime.fromisoformat(date_str)
