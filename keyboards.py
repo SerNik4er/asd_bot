@@ -6,7 +6,7 @@ def get_main_keyboard():
         [KeyboardButton("🌙 Сон"), KeyboardButton("🍎 Еда")],
         [KeyboardButton("😥 Срыв"), KeyboardButton("😊 Настроение")],
         [KeyboardButton("📊 Статистика"), KeyboardButton("💊 Лекарства")],
-        [KeyboardButton("⏰ Напомнить"), KeyboardButton("📤 Отчет")],
+        [KeyboardButton("📤 Отчет")],
         [KeyboardButton("❓ Помощь"), KeyboardButton("💡 Совет")]
     ]
     return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
