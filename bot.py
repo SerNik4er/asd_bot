@@ -1,3 +1,4 @@
+import warnings
 from telegram import Update
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, 
@@ -44,6 +45,9 @@ from on_handlers import (
 
 # Импорт админской команды
 from handlers.admin import users_list
+from telegram.warnings import PTBUserWarning
+
+warnings.filterwarnings("ignore", category=PTBUserWarning)
 
 ADMIN_IDS = [1249686924]  # ваш ID
 
