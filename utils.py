@@ -13,8 +13,10 @@ def format_report(user_id, events):
     report_lines = [f"📋 Отчёт для пользователя {user_id}", f"📅 Период: {datetime.now().strftime('%d.%m.%Y')}", "", "=" * 50, ""]
     
     for event in events:
-        date_str, event_type, value, severity, note = event
+        # Распаковываем 6 полей: date, event_type, behavior_type, value, severity, note
+        date_str, event_type, behavior_type, value, severity, note = event
         
+        # Преобразуем дату
         try:
             if isinstance(date_str, str):
                 created_at = datetime.fromisoformat(date_str)
@@ -28,10 +30,10 @@ def format_report(user_id, events):
             report_lines.append(f"🌙 Сон: {value} ч ({time_str})")
         elif event_type == "food":
             report_lines.append(f"🍽️ Еда: {value} ({time_str})")
-        elif event_type == "meltdown":
+        elif event_type == "behavior":
             severity = severity or 0
             severity_str = "🔴" * severity + "⚪" * (5 - severity)
-            report_lines.append(f"😭 Истерика: {severity}/5 {severity_str} ({time_str})")
+            report_lines.append(f"😔 Поведение: {behavior_type} (сила {severity}/5) {severity_str} ({time_str})")
             if note:
                 report_lines.append(f"   📝 Причина: {note}")
         elif event_type == "toilet":
@@ -41,10 +43,6 @@ def format_report(user_id, events):
             mood_emojis = {1: "😭", 2: "😟", 3: "😐", 4: "🙂", 5: "😄"}
             mood_emoji = mood_emojis.get(severity, "😐")
             report_lines.append(f"😊 Настроение: {mood_emoji} {severity}/5 ({time_str})")
-        elif event_type == "behavior":
-            behavior_type = value if value else (note if note else "не указан")
-            severity_str = "🔴" * severity + "⚪" * (5 - severity)
-            report_lines.append(f"😔 Поведение: {behavior_type} (сила {severity}/5) {severity_str} ({time_str})")
         else:
             report_lines.append(f"📌 {event_type}: {value} ({time_str})")
     
